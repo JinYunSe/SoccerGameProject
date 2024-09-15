@@ -1,7 +1,7 @@
 {
   "name": "SoccerGameProject",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "src/app.js",
   "repository": "https://github.com/JinYunSe/SoccerGameProject.git",
   "author": "JinYunSe <123576244+JinYunSe@users.noreply.github.com>",
   "license": "MIT",
@@ -21,6 +21,7 @@
   },
   "devDependencies": {
     "dotenv": "^16.4.5",
-    "nodemon": "^3.1.4"
+    "nodemon": "^3.1.4",
+    "prettier": "^3.3.3"
   }
 }

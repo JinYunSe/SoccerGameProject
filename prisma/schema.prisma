@@ -1,0 +1,62 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model accounts{
+  account_id Int @id @default(autoincrement())
+  // id나 nickname이 unqiue키라 account_id를 제거하고
+  // id나 nickname을 Primary Key로 줄 수 있지만,
+  // 그럴 경우 게임 매칭이 api/play/id(string) or nickname(string)
+  // 으로 번거로움이 존재해 현재는
+  // account_id(정수)로 매칭이 잡히게 만들겠습니다...
+  // 향후, 도전 과제에서 승률을 바탕으로 매칭이 잡히게 만들기 시작할 경우
+  // account_id 제거하기
+  name String
+  id String @unique
+  password String
+  nickname String @unique
+  win Int @default(0)
+  lose Int @default(0)
+  draw Int @default(0)
+  cash Int @default(10000)
+  total_cash Int @default(0)
+
+  hold_player hold_players?
+  @@map("accounts")
+}
+
+model hold_players{
+  account_id Int @id
+  name String @unique
+  enforece Int @default(1)
+  count Int @default(0)
+  list_in Int @default(0)
+
+  account accounts @relation(fields: [account_id], references: [account_id], onDelete: Cascade)
+  player players @relation(fields: [name], references: [name])
+  @@map("hold_players")
+}
+
+model players{
+  name String @id
+  rarity Int @default(0)
+  stats_run Int
+  stats_goal_decision Int
+  stats_power Int
+  stats_defense Int
+  stats_stamina Int
+
+  hold_player hold_players[]
+  @@map("players")
+}
