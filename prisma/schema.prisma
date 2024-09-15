@@ -50,7 +50,7 @@ model hold_players{
 
 model players{
   name String @id
-  rarity Int @default(0)
+  rarity String
   stats_run Int
   stats_goal_decision Int
   stats_power Int
