@@ -1,9 +1,10 @@
 import express from 'express';
 import prisma from '../utils/prisma/index.js';
+import rarityPlayerList from '../utils/players/search.players.js';
 import checkBatchimEnding from '../utils/lastkorean/consonants.js';
 import joi from 'joi';
 
-const gambling_router = express.Router();
+const player_router = express.Router();
 
 const name_validation = joi.object({
   name: joi
@@ -55,7 +56,7 @@ const updated_validation = joi.object({
 });
 
 // 선수 추가 API
-gambling_router.post('/gambling', async (req, res, next) => {
+player_router.post('/player', async (req, res, next) => {
   try {
     const validation = await create_validation.validateAsync(req.body);
 
@@ -64,11 +65,23 @@ gambling_router.post('/gambling', async (req, res, next) => {
         name: validation.name,
       },
     });
-    if (is_exit) return res.stats(401).json('이미 존재하는 선수 입니다.');
+    if (is_exit) return res.status(401).json('이미 존재하는 선수 입니다.');
+
+    const rarity_player_list = await rarityPlayerList(validation.rarity);
+
+    for (let i = 1; i < rarity_player_list.length + 1; i++) {
+      await prisma.players.update({
+        where: { name: rarity_player_list[i - 1].name, rarity: validation.rarity },
+        data: {
+          range: i / (rarity_player_list.length + 1),
+        },
+      });
+    }
 
     await prisma.players.create({
       data: {
         ...validation,
+        range: 1,
       },
     });
 
@@ -89,7 +102,7 @@ gambling_router.post('/gambling', async (req, res, next) => {
 });
 
 // 선수 수정 API
-gambling_router.patch('/gambling', async (req, res, next) => {
+player_router.patch('/player', async (req, res, next) => {
   try {
     const validation = await updated_validation.validateAsync(req.body);
     const is_exit = await prisma.players.findFirst({
@@ -127,7 +140,7 @@ gambling_router.patch('/gambling', async (req, res, next) => {
 });
 
 // 선수 전체 조회 API
-gambling_router.get('/gambling', async (req, res, next) => {
+player_router.get('/player', async (req, res, next) => {
   const gambling_list = await prisma.players.findMany({
     select: {
       name: true,
@@ -137,13 +150,28 @@ gambling_router.get('/gambling', async (req, res, next) => {
       stats_power: true,
       stats_defense: true,
       stats_stamina: true,
+      range: true,
+    },
+    orderBy: {
+      range: 'asc',
     },
   });
   return res.status(200).json(gambling_list);
 });
 
+// 해당 선수 조회 API
+player_router.get('/player', async (req, res, next) => {
+  const { name } = await name_validation.validateAsync(req.body);
+
+  const is_exit = await prisma.players.findFirst({
+    where: { name },
+  });
+  if (!is_exit) return res.status(404).json('해당 선수가 존재하지 않습니다.');
+  return res.status(200).json(is_exit);
+});
+
 // 선수 삭제 API
-gambling_router.delete('/gambling', async (req, res, next) => {
+player_router.delete('/player', async (req, res, next) => {
   try {
     const { name } = await name_validation.validateAsync(req.body);
     const is_exit = await prisma.players.findFirst({
@@ -162,4 +190,5 @@ gambling_router.delete('/gambling', async (req, res, next) => {
     next(error);
   }
 });
-export default gambling_router;
+
+export default player_router;
