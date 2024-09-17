@@ -32,18 +32,20 @@ model accounts{
   cash Int @default(10000)
   total_cash Int @default(0)
 
-  hold_player hold_players?
+  hold_player hold_players[]
   @@map("accounts")
 }
 
 model hold_players{
-  account_id Int @id
+  id Int @id @default(autoincrement())
+  account_id Int
   name String @unique
   enforece Int @default(1)
   count Int @default(0)
   list_in Int @default(0)
 
-  account accounts @relation(fields: [account_id], references: [account_id], onDelete: Cascade)
+  accounts accounts @relation(fields: [account_id], references: [account_id], onDelete: Cascade)
+
   player players @relation(fields: [name], references: [name])
   @@map("hold_players")
 }
