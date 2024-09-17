@@ -24,27 +24,15 @@ const rarityPlayerList = async (rarity) => {
 };
 
 const probabilityAdjustment = async (rarity, cud) => {
-  const rarity_player_list = await rarityPlayerList(rarity);
-
-  if (cud === 'create' || cud === 'update') {
-    for (let i = 1; i < rarity_player_list.length + 1; i++) {
-      await prisma.players.update({
-        where: { name: rarity_player_list[i - 1].name, rarity },
-        data: {
-          range: i / (rarity_player_list.length + 1),
-        },
-      });
-    }
-  }
-  if (cud === 'delete' || cud === 'update') {
-    for (let i = 1; i <= rarity_player_list.length; i++) {
-      await prisma.players.update({
-        where: { name: rarity_player_list[i - 1].name, rarity },
-        data: {
-          range: i / rarity_player_list.length,
-        },
-      });
-    }
+  const rarity_player_List = await rarityPlayerList(rarity);
+  const divisor = cud === 'create' ? rarity_player_List.length + 1 : rarity_player_List.length;
+  for (let i = 0; i < rarity_player_List.length; i++) {
+    await prisma.players.update({
+      where: { name: rarity_player_List[i].name, rarity },
+      data: {
+        range: (i + 1) / divisor,
+      },
+    });
   }
 };
 

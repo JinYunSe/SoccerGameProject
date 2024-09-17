@@ -58,7 +58,7 @@ model players{
   stats_power Int
   stats_defense Int
   stats_stamina Int
-  range Decimal @default(0)
+  range Decimal @default(1)
   // Decimal은 실수 타입으로
   // DB에는 Float와 Deciaml이 존재하는데
 
