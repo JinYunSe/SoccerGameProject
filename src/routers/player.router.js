@@ -68,19 +68,13 @@ player_router.post('/player', async (req, res, next) => {
     });
     if (is_exit) return res.status(401).json('이미 존재하는 선수 입니다.');
 
-    await prisma.$transaction(
-      async (tx) => {
-        await probabilityAdjustment(validation.rarity, 'create');
-        await tx.players.create({
-          data: {
-            ...validation,
-          },
-        });
+    await prisma.players.create({
+      data: {
+        ...validation,
       },
-      {
-        isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted,
-      },
-    );
+    });
+
+    await probabilityAdjustment(validation.rarity);
 
     const add_last_korean = checkBatchimEnding(validation.name) ? '이' : '가';
 
@@ -120,20 +114,19 @@ player_router.patch('/player', async (req, res, next) => {
     // ||은 false 0 null "" undefined가 ||의 왼쪽에 있으면 ||의 오른쪽 실행
     // ??은 null undefined가 ??의 왼쪽에 있으면 ??의 오른쪽 실행
 
-    if (updated_player.rarity !== is_exit.rarity)
-      await probabilityAdjustment(updated_player.rarity, 'create');
-
     // stats 변경 사항 변경
     await prisma.players.update({
       where: { name: is_exit.name },
       data: {
         ...updated_player,
-        range: 1,
       },
     });
 
-    if (updated_player.rarity !== is_exit.rarity)
-      await probabilityAdjustment(is_exit.rarity, 'delete');
+    if (updated_player.rarity !== is_exit.rarity) {
+      await probabilityAdjustment(updated_player.rarity);
+      await probabilityAdjustment(is_exit.rarity);
+    }
+    // 기존 등급에서는 -1 된 개수로 Range 범위 수정
 
     const add_last_korean = checkBatchimEnding(is_exit.name) ? '이' : '가';
     return res.status(201).json(`선수 ${validation.name}${add_last_korean} 수정됐습니다.`);
@@ -185,7 +178,7 @@ player_router.delete('/player', async (req, res, next) => {
       where: { name: is_exit.name },
     });
 
-    await probabilityAdjustment(is_exit.rarity, 'delete');
+    await probabilityAdjustment(is_exit.rarity);
 
     const add_last_korean = checkBatchimEnding(is_exit.name) ? '이' : '가';
     return res.status(201).json(`선수 ${is_exit.name}${add_last_korean} 삭제 됐습니다.`);

@@ -23,10 +23,15 @@ const rarityPlayerList = async (rarity) => {
   return rarity_players_list;
 };
 
-const probabilityAdjustment = async (rarity, cud) => {
+// player_id Int pk 가 있었다면prisma.players.count로 등급별 개수를 구하고
+// 반복문을 사용해 player_id : (i + 1) 및 rarity로 range를 쉽게 변경할 수 있었을 것 같은데 아쉽다...
+
+const probabilityAdjustment = async (rarity) => {
   const rarity_player_List = await rarityPlayerList(rarity);
-  const divisor = cud === 'create' ? rarity_player_List.length + 1 : rarity_player_List.length;
-  for (let i = 0; i < rarity_player_List.length; i++) {
+
+  const divisor = rarity_player_List.length;
+  // 등급에 따른 선수 목록을 가져옵니다.
+  for (let i = 0; i < divisor; i++) {
     await prisma.players.update({
       where: { name: rarity_player_List[i].name, rarity },
       data: {
