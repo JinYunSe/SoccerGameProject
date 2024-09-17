@@ -1,6 +1,6 @@
 import express from 'express';
 import prisma from '../utils/prisma/index.js';
-import rarityPlayerList from '../utils/players/search.players.js';
+import { probabilityAdjustment } from '../utils/players/players.js';
 import checkBatchimEnding from '../utils/lastkorean/consonants.js';
 import joi from 'joi';
 
@@ -67,16 +67,7 @@ player_router.post('/player', async (req, res, next) => {
     });
     if (is_exit) return res.status(401).json('이미 존재하는 선수 입니다.');
 
-    const rarity_player_list = await rarityPlayerList(validation.rarity);
-
-    for (let i = 1; i < rarity_player_list.length + 1; i++) {
-      await prisma.players.update({
-        where: { name: rarity_player_list[i - 1].name, rarity: validation.rarity },
-        data: {
-          range: i / (rarity_player_list.length + 1),
-        },
-      });
-    }
+    await probabilityAdjustment(validation.rarity, 'create');
 
     await prisma.players.create({
       data: {
@@ -152,9 +143,7 @@ player_router.get('/player', async (req, res, next) => {
       stats_stamina: true,
       range: true,
     },
-    orderBy: {
-      range: 'asc',
-    },
+    orderBy: [{ rarity: 'asc' }, { range: 'asc' }],
   });
   return res.status(200).json(gambling_list);
 });
@@ -183,6 +172,8 @@ player_router.delete('/player', async (req, res, next) => {
     await prisma.players.delete({
       where: { name: is_exit.name },
     });
+
+    await probabilityAdjustment(is_exit.rarity, 'delete');
 
     const add_last_korean = checkBatchimEnding(is_exit.name) ? '이' : '가';
     return res.status(201).json(`선수 ${is_exit.name}${add_last_korean} 삭제 됐습니다.`);
