@@ -9,12 +9,15 @@ gambling_router.get('/gambling', async (req, res, next) => {
   // 향후 인증, 인가를 바탕으로 userId 받아오기
 
   const raritynumber = randomNumber01();
-  const rarity = await rarityOutputPrint(randomNumber01());
+
+  console.log('레어 등급 결정 난수 :' + raritynumber);
+
+  const rarity = await rarityOutputPrint(raritynumber);
+
+  console.log('레어 등급 : ' + rarity);
 
   const rarity_player_list = await rarityPlayerList(rarity);
   // rarityPlayerList를 통해 레어 등급에 해당 하는 선수 목록을 가져옵니다.
-
-  console.log('레어 등급 결정 난수 :' + raritynumber);
 
   const random_number = randomNumber01();
 
@@ -31,6 +34,9 @@ gambling_router.get('/gambling', async (req, res, next) => {
     }
     start_range = rarity_player_list[i].range;
   }
+
+  console.log('뽑힌 선수 : ' + result);
+
   return res.status(200).json(`${rarity} 등급의 ${result} 선수가 나왔습니다!!`);
 
   // 향후 userId를 바탕으로 holdtable 조회해서 해당 선수 추가해주기
