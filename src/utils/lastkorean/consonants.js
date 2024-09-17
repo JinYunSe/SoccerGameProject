@@ -18,7 +18,7 @@ function checkBatchimEnding(word) {
 로 작성돼야 합니다.
 
 현재 true는 받침이 있는 글자, false는 받침이 없는 글자로,
-사용 법은 src/routers/gambling.router.js에 뽑기 추가 부분을 보시면 됩니다.
+사용 법은 src/routers/player.router.js에 뽑기 추가 부분을 보시면 됩니다.
 
  */
 
