@@ -3,9 +3,9 @@ const randomNumber01 = () => {
 };
 
 const rarityOutputPrint = (value) => {
-  if (0 <= value && value <= 0.33) return 'SSR';
+  if (0 <= value && value < 0.33) return 'SSR';
   // 4%
-  else if (0.33 < value && value <= 0.66) return 'SR';
+  else if (0.33 <= value && value < 0.66) return 'SR';
   // 43%
   else return 'R';
   // 53%
