@@ -41,4 +41,13 @@ const probabilityAdjustment = async (rarity) => {
   }
 };
 
-export { rarityPlayerList, probabilityAdjustment };
+// 선수 유무 확인 함수
+const playerisExist = async (name) => {
+  const is_exit = await prisma.players.findFirst({
+    where: {
+      name,
+    },
+  });
+  return is_exit;
+};
+export { rarityPlayerList, probabilityAdjustment, playerisExist };
