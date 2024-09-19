@@ -40,7 +40,7 @@ model hold_players {
   id Int @id @default(autoincrement())
   account_id Int
   name String
-  enforece Int @default(1)
+  enforce Int @default(1)
   count Int @default(1)
   list_in Int @default(0)
 
@@ -70,4 +70,34 @@ model players{
   // ex ) 1.1234567789123456 -> 1.123456789123456
   hold_player hold_players[]
   @@map("players")
+}
+
+model SSR{
+  enforce Int @id @default(autoincrement())
+  add_run Int
+  add_goal_decision Int
+  add_power Int
+  add_defense Int
+  add_stamina Int
+  @@map("SSR")
+}
+
+model SR{
+  enforce Int @id @default(autoincrement())
+  add_run Int
+  add_goal_decision Int
+  add_power Int
+  add_defense Int
+  add_stamina Int
+  @@map("SR")
+}
+
+model R{
+  enforce Int @id @default(autoincrement())
+  add_run Int
+  add_goal_decision Int
+  add_power Int
+  add_defense Int
+  add_stamina Int
+  @@map("R")
 }

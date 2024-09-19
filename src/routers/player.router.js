@@ -1,7 +1,6 @@
 import express from 'express';
 import prisma from '../utils/prisma/index.js';
-import { Prisma } from '@prisma/client';
-import { rarityPlayerList, probabilityAdjustment } from '../utils/players/players.js';
+import { probabilityAdjustment, playerisExist } from '../utils/players/players.js';
 import checkBatchimEnding from '../utils/lastkorean/consonants.js';
 import joi from 'joi';
 
@@ -23,12 +22,7 @@ const create_validation = joi.object({
     .min(1)
     .max(191)
     .required(),
-  rarity: joi
-    .string()
-    .pattern(/^[A-Z]+$/)
-    .min(1)
-    .max(3)
-    .required(),
+  rarity: joi.string().valid('SSR', 'SR', 'R').required(),
   stats_run: joi.number().min(0).max(2147483647).required(),
   stats_goal_decision: joi.number().min(0).max(2147483647).required(),
   stats_power: joi.number().integer().min(0).max(2147483647).required(),
@@ -43,12 +37,7 @@ const updated_validation = joi.object({
     .min(1)
     .max(191)
     .required(),
-  rarity: joi
-    .string()
-    .pattern(/^[A-Z]+$/)
-    .min(1)
-    .max(3)
-    .optional(),
+  rarity: joi.string().valid('SSR', 'SR', 'R').required(),
   stats_run: joi.number().min(0).max(2147483647).optional(),
   stats_goal_decision: joi.number().min(0).max(2147483647).optional(),
   stats_power: joi.number().integer().min(0).max(2147483647).optional(),
@@ -61,12 +50,8 @@ player_router.post('/player', async (req, res, next) => {
   try {
     const validation = await create_validation.validateAsync(req.body);
 
-    const is_exit = await prisma.players.findFirst({
-      where: {
-        name: validation.name,
-      },
-    });
-    if (is_exit) return res.status(401).json('이미 존재하는 선수 입니다.');
+    if (await playerisExist(validation.name))
+      return res.status(401).json('이미 존재하는 선수 입니다.');
 
     await prisma.players.create({
       data: {
@@ -96,9 +81,7 @@ player_router.post('/player', async (req, res, next) => {
 player_router.patch('/player', async (req, res, next) => {
   try {
     const validation = await updated_validation.validateAsync(req.body);
-    const is_exit = await prisma.players.findFirst({
-      where: { name: validation.name },
-    });
+    const is_exit = await playerisExist(validation.name);
     if (!is_exit) return res.status(404).json('해당 선수가 존재하지 않습니다.');
 
     //수정할 항목 적용
@@ -157,10 +140,7 @@ player_router.get('/player', async (req, res, next) => {
 player_router.get('/player', async (req, res, next) => {
   const { name } = await name_validation.validateAsync(req.body);
 
-  const is_exit = await prisma.players.findFirst({
-    where: { name },
-  });
-  if (!is_exit) return res.status(404).json('해당 선수가 존재하지 않습니다.');
+  if (!(await playerisExist(name))) return res.status(404).json('해당 선수가 존재하지 않습니다.');
   return res.status(200).json(is_exit);
 });
 
@@ -168,9 +148,7 @@ player_router.get('/player', async (req, res, next) => {
 player_router.delete('/player', async (req, res, next) => {
   try {
     const { name } = await name_validation.validateAsync(req.body);
-    const is_exit = await prisma.players.findFirst({
-      where: { name: name },
-    });
+    const is_exit = await playerisExist(name);
 
     if (!is_exit) return res.status(404).json('해당 선수가 존재하지 않습니다.');
 
