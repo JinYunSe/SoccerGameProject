@@ -1,7 +1,7 @@
 import prisma from '../prisma/index.js';
 import { Prisma } from '@prisma/client';
 
-export const teamsEdit = async (account_id, num, name) => {
+export const teamsEdit = async (account_id, list_in, name) => {
   // name1로 입력 받은 선수명 / 입력받은 선수가 보유 중인 선수인가?
   const is_exist_name = await prisma.hold_players.findFirst({
     where: { account_id: +account_id, name: name },
@@ -12,9 +12,8 @@ export const teamsEdit = async (account_id, num, name) => {
 
   // 기존 출전번호가 1인 선수가 있는가? 있으면 0으로 변경 없으면 그냥 진행
   const is_exist_list_in = await prisma.hold_players.findFirst({
-    where: { account_id: +account_id, list_in: num },
+    where: { account_id: +account_id, list_in: list_in },
   });
-  console.log(is_exist_list_in);
 
   const [listInZero, teamsListUpdate] = await prisma.$transaction(
     async (tx) => {
@@ -25,13 +24,18 @@ export const teamsEdit = async (account_id, num, name) => {
           data: {
             list_in: 0,
           },
-          where: { account_id: +account_id, list_in: num, name: is_exist_list_in.name },
+          where: {
+            account_id_name: { account_id: +account_id, name },
+            list_in: list_in,
+          },
         });
 
         // name1 선수의 list_in을 1로 변경
         const teamsListUpdate = await tx.hold_players.update({
-          data: { list_in: num },
-          where: { account_id: +account_id, name: name },
+          data: { list_in: list_in },
+          where: {
+            account_id_name: { account_id: +account_id, name },
+          },
         });
         return [listInZero, teamsListUpdate];
       }
@@ -40,9 +44,11 @@ export const teamsEdit = async (account_id, num, name) => {
       else {
         const teamsListUpdate = await tx.hold_players.update({
           data: {
-            list_in: num,
+            list_in: list_in,
           },
-          where: { account_id: +account_id, name: name },
+          where: {
+            account_id_name: { account_id: +account_id, name },
+          },
         });
         return [teamsListUpdate];
       }
@@ -53,10 +59,10 @@ export const teamsEdit = async (account_id, num, name) => {
   );
 };
 
-// 검색된 계정 정보의 hold_players에서 list_in의 값이 1~3인 값을 찾음
+// 검색된 계정 정보의 hold_players에서 list_in의 값이 0이 아닌 값을 찾음
 export const teamsList = async (account_id) => {
   const team_member_list = await prisma.hold_players.findMany({
-    where: { account_id: +account_id, list_in: { in: [1, 2, 3] } },
+    where: { account_id: +account_id, NOT: { list_in: 0 } },
     select: { list_in: true, name: true },
     orderBy: { list_in: 'asc' },
   });
@@ -67,7 +73,6 @@ export const teamsList = async (account_id) => {
     message_data[i] = `${team_member_list[i].list_in}번 ${team_member_list[i].name}`;
   }
 
-  console.log(message_data);
   // 반환
   return message_data;
 };
