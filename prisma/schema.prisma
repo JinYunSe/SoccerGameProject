@@ -36,17 +36,18 @@ model accounts{
   @@map("accounts")
 }
 
-model hold_players{
+model hold_players {
   id Int @id @default(autoincrement())
   account_id Int
-  name String @unique
+  name String
   enforece Int @default(1)
-  count Int @default(0)
+  count Int @default(1)
   list_in Int @default(0)
 
   accounts accounts @relation(fields: [account_id], references: [account_id], onDelete: Cascade)
-
   player players @relation(fields: [name], references: [name])
+
+  @@unique([account_id, name])  // 복합 유니크 제약 조건 설정
   @@map("hold_players")
 }
 
