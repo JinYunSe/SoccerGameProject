@@ -23,12 +23,7 @@ const create_validation = joi.object({
     .min(1)
     .max(191)
     .required(),
-  rarity: joi
-    .string()
-    .pattern(/^[A-Z]+$/)
-    .min(1)
-    .max(3)
-    .required(),
+  rarity: joi.string().valid('SSR', 'SR', 'R').required(),
   stats_run: joi.number().min(0).max(2147483647).required(),
   stats_goal_decision: joi.number().min(0).max(2147483647).required(),
   stats_power: joi.number().integer().min(0).max(2147483647).required(),

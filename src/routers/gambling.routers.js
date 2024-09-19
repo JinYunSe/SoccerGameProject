@@ -8,6 +8,12 @@ import {
 
 import { rarityPlayerList } from '../utils/players/players.js';
 import checkBatchimEnding from '../utils/lastkorean/consonants.js';
+import prisma from '../utils/prisma/index.js';
+import joi from 'joi';
+
+const account_id_validation = joi.object({
+  account_id: joi.number().integer().min(1).required(),
+});
 
 const gambling_router = express.Router();
 
@@ -52,6 +58,47 @@ gambling_router.get('/gambling', async (req, res, next) => {
   // 향후 userId를 바탕으로 holdtable 조회해서 해당 선수 추가해주기
   // 기존에 존재 했었으면 count + 1
   // 없었으면 새로 추가
+});
+
+// 유저 전체가 보유한 선수 목록 조회
+gambling_router.get('/gambling/result', async (req, res, next) => {
+  const list = await prisma.hold_players.findMany({
+    select: {
+      account_id: true,
+      name: true,
+      enforece: true,
+      count: true,
+      list_in: true,
+    },
+    orderBy: {
+      account_id: 'asc',
+    },
+  });
+  return res.status(200).json(list);
+});
+
+// 특정 유저가 보유한 선수 목록 조회
+// 현재는 권한 인증 및 인가가 없어서
+gambling_router.get('/gambling/:account_id', async (req, res, next) => {
+  try {
+    const { account_id } = await account_id_validation.validateAsync(req.params);
+    const list = await prisma.hold_players.findMany({
+      where: { account_id },
+      select: {
+        account_id: true,
+        name: true,
+        enforece: true,
+        count: true,
+        list_in: true,
+      },
+      orderBy: {
+        account_id: 'asc',
+      },
+    });
+    return res.status(200).json(list);
+  } catch (error) {
+    next(error);
+  }
 });
 
 export default gambling_router;

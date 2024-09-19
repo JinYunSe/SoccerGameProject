@@ -2,13 +2,19 @@ import prisma from '../prisma/index.js';
 
 const existingHoldPlayer = async (account_id, name) => {
   // 해당 유저한테 뽑힌 선수가 있는지 조회
-  const exist_hold_player = await prisma.hold_players.findFirst({
+  return await prisma.hold_players.findFirst({
     where: {
       account_id,
       name,
     },
+    include: {
+      player: {
+        select: {
+          rarity: true,
+        },
+      },
+    },
   });
-  return exist_hold_player;
 };
 
 const incrementHoldPlayer = async (account_id, name) => {
