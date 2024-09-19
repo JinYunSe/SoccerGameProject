@@ -1,18 +1,20 @@
 import express from 'express';
-
+import { randomNumber01, rarityOutputPrint } from '../utils/Math/gambling.math.js';
 import {
   existingHoldPlayer,
   incrementHoldPlayer,
   addHoldPlayer,
-} from '../utils/players/holdplayer.js';
+} from '../utils/players/holdplayers.js';
+
 import { rarityPlayerList } from '../utils/players/players.js';
 import checkBatchimEnding from '../utils/lastkorean/consonants.js';
-import { randomNumber01, rarityOutputPrint } from '../utils/Math/gambling.math.js';
 
 const gambling_router = express.Router();
 
 gambling_router.get('/gambling', async (req, res, next) => {
   // 향후 인증, 인가를 바탕으로 userId 받아오기
+
+  const raritynumber = randomNumber01();
 
   const rarity = await rarityOutputPrint(randomNumber01());
 
