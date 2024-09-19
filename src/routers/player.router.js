@@ -1,7 +1,6 @@
 import express from 'express';
 import prisma from '../utils/prisma/index.js';
-import { Prisma } from '@prisma/client';
-import { rarityPlayerList, probabilityAdjustment } from '../utils/players/players.js';
+import { probabilityAdjustment, playerisExist } from '../utils/players/players.js';
 import checkBatchimEnding from '../utils/lastkorean/consonants.js';
 import joi from 'joi';
 
@@ -61,12 +60,8 @@ player_router.post('/player', async (req, res, next) => {
   try {
     const validation = await create_validation.validateAsync(req.body);
 
-    const is_exit = await prisma.players.findFirst({
-      where: {
-        name: validation.name,
-      },
-    });
-    if (is_exit) return res.status(401).json('이미 존재하는 선수 입니다.');
+    if (await playerisExist(validation.name))
+      return res.status(401).json('이미 존재하는 선수 입니다.');
 
     await prisma.players.create({
       data: {
@@ -96,9 +91,7 @@ player_router.post('/player', async (req, res, next) => {
 player_router.patch('/player', async (req, res, next) => {
   try {
     const validation = await updated_validation.validateAsync(req.body);
-    const is_exit = await prisma.players.findFirst({
-      where: { name: validation.name },
-    });
+    const is_exit = await playerisExist(validation.name);
     if (!is_exit) return res.status(404).json('해당 선수가 존재하지 않습니다.');
 
     //수정할 항목 적용
@@ -156,11 +149,7 @@ player_router.get('/player', async (req, res, next) => {
 // 해당 선수 조회 API
 player_router.get('/player', async (req, res, next) => {
   const { name } = await name_validation.validateAsync(req.body);
-
-  const is_exit = await prisma.players.findFirst({
-    where: { name },
-  });
-  if (!is_exit) return res.status(404).json('해당 선수가 존재하지 않습니다.');
+  if (!(await playerisExist(name))) return res.status(404).json('해당 선수가 존재하지 않습니다.');
   return res.status(200).json(is_exit);
 });
 
@@ -168,20 +157,18 @@ player_router.get('/player', async (req, res, next) => {
 player_router.delete('/player', async (req, res, next) => {
   try {
     const { name } = await name_validation.validateAsync(req.body);
-    const is_exit = await prisma.players.findFirst({
-      where: { name: name },
-    });
 
+    const is_exit = await playerisExist(name);
     if (!is_exit) return res.status(404).json('해당 선수가 존재하지 않습니다.');
 
     await prisma.players.delete({
-      where: { name: is_exit.name },
+      where: { name },
     });
 
     await probabilityAdjustment(is_exit.rarity);
 
-    const add_last_korean = checkBatchimEnding(is_exit.name) ? '이' : '가';
-    return res.status(201).json(`선수 ${is_exit.name}${add_last_korean} 삭제 됐습니다.`);
+    const add_last_korean = checkBatchimEnding(name) ? '이' : '가';
+    return res.status(201).json(`선수 ${name}${add_last_korean} 삭제 됐습니다.`);
   } catch (error) {
     next(error);
   }
