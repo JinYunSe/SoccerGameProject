@@ -135,10 +135,14 @@ player_router.get('/players', async (req, res, next) => {
 
 // 해당 선수 조회 API
 player_router.get('/player', async (req, res, next) => {
-  const validation = await name_validation.validateAsync(req.body);
-  const is_exit = await table_findFirst(process.env.PLAYERS, { ...validation });
-  if (!is_exit) return res.status(404).json('해당 선수가 존재하지 않습니다.');
-  return res.status(200).json(is_exit);
+  try {
+    const validation = await name_validation.validateAsync(req.body);
+    const is_exit = await table_findFirst(process.env.PLAYERS, { ...validation });
+    if (!is_exit) return res.status(404).json('해당 선수가 존재하지 않습니다.');
+    return res.status(200).json(is_exit);
+  } catch (error) {
+    next(error);
+  }
 });
 
 // 선수 삭제 API

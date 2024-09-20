@@ -12,8 +12,9 @@ const table_findMany = async (table_name, value) => {
   });
 };
 
-const row_update = async (table_name, where_condition, value) => {
-  await prisma[table_name].update({
+const row_update = async (table_name, where_condition, value, tx) => {
+  const db = tx ? tx : prisma;
+  await db[table_name].update({
     where: { ...where_condition },
     data: {
       ...value,
@@ -21,16 +22,18 @@ const row_update = async (table_name, where_condition, value) => {
   });
 };
 
-const row_create = async (table_name, value) => {
-  await prisma[table_name].create({
+const row_create = async (table_name, value, tx) => {
+  const db = tx ? tx : prisma;
+  await db[table_name].create({
     data: {
       ...value,
     },
   });
 };
 
-const row_delete = async (table_name, where_condition) => {
-  await prisma[table_name].delete({
+const row_delete = async (table_name, where_condition, tx) => {
+  const db = tx ? tx : prisma;
+  await db[table_name].delete({
     where: { ...where_condition },
   });
 };
