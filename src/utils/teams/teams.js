@@ -7,6 +7,7 @@ export const teamsEdit = async (account_id, list_in, name) => {
   const is_exist_name = await prisma.hold_players.findFirst({
     where: { account_id, name },
   });
+  console.log(is_exist_name);
   // 선수 미보유?
   if (!is_exist_name) return res.status(400).json({ message: '해당 선수가 존재하지 않습니다.' });
 
@@ -23,20 +24,20 @@ export const teamsEdit = async (account_id, list_in, name) => {
             list_in: 0,
           },
           where: {
-            account_id_name: { account_id, name },
-            list_in,
+            id: is_exist_list_in.id,
           },
         });
+
         // name1 선수의 list_in을 1로 변경
         const teamsListUpdate = await tx.hold_players.update({
           data: { list_in },
           where: {
-            account_id_name: { account_id, name },
+            id: is_exist_name.id,
           },
         });
         return [listInZero, teamsListUpdate];
       }
-
+      
       // 없으면 입력받은 선수명의 list_in을 1로 변경
       else {
         const teamsListUpdate = await tx.hold_players.update({
@@ -44,7 +45,7 @@ export const teamsEdit = async (account_id, list_in, name) => {
             list_in,
           },
           where: {
-            account_id_name: { account_id, name },
+            id: is_exist_name.id,
           },
         });
         return [teamsListUpdate];
