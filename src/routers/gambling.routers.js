@@ -1,12 +1,13 @@
 import express from 'express';
 import { randomNumber01, rarityOutputPrint } from '../utils/Math/gambling.math.js';
 import {
-  existingHoldPlayer,
   incrementHoldPlayer,
   addHoldPlayer,
+  holdPlayerSearch,
 } from '../utils/players/holdplayers.js';
 
-import prisma from '../utils/prisma/index.js';
+import { table_findFirst } from '../utils/tableFunction/table.js';
+
 import joi from 'joi';
 
 import { rarityPlayerList } from '../utils/players/players.js';
@@ -41,7 +42,10 @@ gambling_router.get('/gambling', async (req, res, next) => {
     '레어 등급 : ' + rarity + '등급 선수 확률 범위 : ' + random_number + '뽑힌 선수 : ' + result,
   );
 
-  const exist_hold_player = await existingHoldPlayer(2, result);
+  const exist_hold_player = await table_findFirst(process.env.HOLD_PLAYERS, {
+    id: 2,
+    name: result,
+  });
   // 현재는 account_id를 인증 및 인가 없이 사용하고 있지만
   // 향후 req.account_id로 바꾸기
 
@@ -59,47 +63,13 @@ gambling_router.get('/gambling', async (req, res, next) => {
 });
 
 gambling_router.get('/gambling/result', async (req, res, next) => {
-  const list = await prisma.hold_players.findMany({
-    select: {
-      account_id: true,
-      name: true,
-      enforce: true,
-      count: true,
-      player: {
-        select: {
-          rarity: true,
-        },
-      },
-    },
-    orderBy: {
-      account_id: 'asc',
-    },
-  });
-  return res.status(200).json(list);
+  return res.status(200).json(await holdPlayerSearch());
 });
 
 gambling_router.get('/gambling/:account_id', async (req, res, next) => {
   try {
     const { account_id } = await account_validate.validateAsync(req.params);
-
-    const list = await prisma.hold_players.findMany({
-      where: { account_id },
-      select: {
-        account_id: true,
-        name: true,
-        enforce: true,
-        count: true,
-        player: {
-          select: {
-            rarity: true,
-          },
-        },
-      },
-      orderBy: {
-        account_id: 'asc',
-      },
-    });
-    return res.status(200).json(list);
+    return res.status(200).json(await holdPlayerSearch(account_id));
   } catch (error) {
     next(error);
   }
