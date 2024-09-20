@@ -15,4 +15,13 @@ const enforcePlayer = async (id, enforce) => {
   });
 };
 
-export { enforcePlayer };
+const rarityRowCreate = async (tableName, value) => {
+  await prisma[tableName].create({
+    // 동적 테이블로 SSR, SR, R 등급 강화 별 스텟 증가량 만들기
+    data: {
+      ...value,
+    },
+  });
+};
+
+export { enforcePlayer, rarityRowCreate };

@@ -45,7 +45,7 @@ model hold_players {
   list_in Int @default(0)
 
   accounts accounts @relation(fields: [account_id], references: [account_id], onDelete: Cascade)
-  player players @relation(fields: [name], references: [name], onDelete: Cascade, onUpdate: Cascade)
+  player players @relation(fields: [name], references: [name])
 
   @@unique([account_id, name])  // 복합 유니크 제약 조건 설정
   @@map("hold_players")
