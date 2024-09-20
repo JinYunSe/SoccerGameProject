@@ -1,16 +1,5 @@
 import prisma from '../prisma/index.js';
 
-const existingHoldPlayer = async (account_id, name) => {
-  // 해당 유저한테 뽑힌 선수가 있는지 조회
-  const exist_hold_player = await prisma.hold_players.findFirst({
-    where: {
-      account_id,
-      name,
-    },
-  });
-  return exist_hold_player;
-};
-
 const incrementHoldPlayer = async (account_id, name) => {
   // 이미 존재하는 경우 count 증가
   await prisma.hold_players.update({
@@ -38,4 +27,27 @@ const addHoldPlayer = async (account_id, name) => {
   });
 };
 
-export { existingHoldPlayer, incrementHoldPlayer, addHoldPlayer };
+const holdPlayerSearch = async (account_id) => {
+  const list = await prisma.hold_players.findMany({
+    where: account_id ? { account_id } : undefined,
+    // 삼항 연산자를 이용한 account_id가 있으면 해당 account_id 유저의 보유한 선수만을
+    // 없으면 undefined이면 전체 조회를 한다.
+    select: {
+      account_id: true,
+      name: true,
+      enforce: true,
+      count: true,
+      player: {
+        select: {
+          rarity: true,
+        },
+      },
+    },
+    orderBy: {
+      account_id: 'asc',
+    },
+  });
+  return list;
+};
+
+export { incrementHoldPlayer, addHoldPlayer, holdPlayerSearch };
