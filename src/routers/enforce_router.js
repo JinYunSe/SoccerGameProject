@@ -35,7 +35,9 @@ enforce_router.patch('/enforce', authMiddleware, async (req, res, next) => {
 
     if (!exist_hold_player) return res.status(404).json('강화할 선수가 없습니다.');
 
-    if (exist_hold_player.enforce >= exist_hold_player.count)
+    if (exist_hold_player.enforce >= 7)
+      return res.status(200).json('모든 강화가 완료된 선수 입니다.');
+    else if (exist_hold_player.enforce >= exist_hold_player.count)
       return res.status(402).json('강화 재화가 부족합니다.');
 
     const result = await enforcePlayer(exist_hold_player.id, exist_hold_player.enforce);

@@ -6,9 +6,20 @@ const table_findFirst = async (table_name, value) => {
   });
 };
 
-const table_findMany = async (table_name, value) => {
+const table_findMany = async (table_name, value, includeFields) => {
   return await prisma[table_name].findMany({
     where: { ...value },
+    //
+    ...(includeFields
+      ? {
+          include: Object.keys(includeFields).reduce((acc, key) => {
+            acc[key] = {
+              select: includeFields[key], // 특정 컬럼만 선택
+            };
+            return acc;
+          }, {}),
+        }
+      : {}),
   });
 };
 

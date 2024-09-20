@@ -3,6 +3,8 @@ import express from 'express';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import joi from 'joi';
+import authMiddleware from '../middleswares/auth.middleware.js';
+import { row_update } from '../utils/tableFunction/table.js';
 
 const router = express.Router();
 
@@ -112,6 +114,17 @@ router.post('/sign-in', async (req, res, next) => {
   } catch (error) {
     next(error);
   }
+});
+
+router.patch('/addcash', authMiddleware, async (req, res, next) => {
+  let { account_id, nickname, cash, total_cash } = req.user;
+  cash += 10000;
+  total_cash += 10000;
+  await row_update(process.env.ACCOUNTS, { account_id }, { cash, total_cash });
+
+  return res
+    .status(200)
+    .json(`10000원이 충전 됐습니다! ${nickname}은 여태까지 ${total_cash}원 충전하셨습니다`);
 });
 
 export default router;

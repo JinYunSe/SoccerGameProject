@@ -76,13 +76,12 @@ router.patch('/teams/edit', authMiddleware, async (req, res, next) => {
 
     //   입력받은 account_id가 존재하는가? -> 인증기능이 들어오면 더 이상 필요x
     const is_exist_team = await prisma.accounts.findFirst({
-      where: { account_id: +account_id },
+      where: { account_id },
     });
     if (!is_exist_team) return res.status(400).json('계정이 존재하지 않습니다.');
 
     // // 데이터를 하나도 입력받지 않았을 때
-    if (inputData.length === 0)
-      return res.status(400).json('교체할 선수 정보를 입력해주세요.');
+    if (inputData.length === 0) return res.status(400).json('교체할 선수 정보를 입력해주세요.');
 
     // 데이터 유효성 검사
     for (let i = 0; i < inputData.length; i++) {
@@ -95,9 +94,11 @@ router.patch('/teams/edit', authMiddleware, async (req, res, next) => {
         if (inputData[i].list_in === inputData[j].list_in)
           return res.status(400).json('선발 번호 중복입니다.');
         if (inputData[i].name === inputData[j].name)
-          return res.status(400).json("선수명 중복입니다.");
+          return res.status(400).json('선수명 중복입니다.');
       }
     }
+
+    // 데이터 베이스와 비교 후 if 문에서 존재 여부 처리해주기
 
     // // name1로 입력 받은 선수명 / 입력받은 선수가 보유 중인 선수인가?
     for (let i = 0; i < inputData.length; i++) {

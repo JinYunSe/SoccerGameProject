@@ -2,8 +2,13 @@ import express from 'express';
 import joi from 'joi';
 
 import { randomNumber01, rarityOutputPrint } from '../utils/Math/gambling.math.js';
-import { holdPlayerSearch } from '../utils/players/holdplayers.js';
-import { table_findFirst, row_create, row_update } from '../utils/tableFunction/table.js';
+
+import {
+  table_findFirst,
+  row_create,
+  row_update,
+  table_findMany,
+} from '../utils/tableFunction/table.js';
 import { rarityPlayerList } from '../utils/players/players.js';
 import { Prisma } from '@prisma/client';
 import checkBatchimEnding from '../utils/lastkorean/consonants.js';
@@ -56,10 +61,7 @@ gambling_router.get('/gambling', authMiddleware, async (req, res) => {
         await row_update(
           process.env.HOLD_PLAYERS,
           {
-            account_id_name: {
-              account_id,
-              name,
-            }, // 중복 유니온 처리
+            id: exist_hold_player.id,
           },
           {
             count: {
@@ -82,14 +84,24 @@ gambling_router.get('/gambling', authMiddleware, async (req, res) => {
 
 // 전체 유저 선수 목록 조회
 gambling_router.get('/gambling/result', async (req, res, next) => {
-  return res.status(200).json(await holdPlayerSearch());
+  return res
+    .status(200)
+    .json(await table_findMany(process.env.HOLD_PLAYERS, {}, { player: { rarity: true } }));
 });
 
 // 특정 유저 선수 목록 조회
 gambling_router.get('/gambling/:account_id', async (req, res, next) => {
   try {
     const { account_id } = await account_validate.validateAsync(req.params);
-    return res.status(200).json(await holdPlayerSearch(account_id));
+    return res
+      .status(200)
+      .json(
+        await table_findMany(
+          process.env.HOLD_PLAYERS,
+          { account_id },
+          { player: { rarity: true } },
+        ),
+      );
   } catch (error) {
     next(error);
   }
