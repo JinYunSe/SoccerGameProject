@@ -99,16 +99,18 @@ router.patch('/teams/:account_id/edit', async (req, res, next) => {
     }
 
     // // name1로 입력 받은 선수명 / 입력받은 선수가 보유 중인 선수인가?
-    for (let i = 0; i < inputData.length; i++) {    
+    for (let i = 0; i < inputData.length; i++) {
       await teamsEdit(account_id, inputData[i].list_in, inputData[i].name);
     }
 
     // 입력받은 데이터로 변경된 내용만 반환
     let message_data = [];
-    inputData.sort((a,b) => a.list_in - b.list_in)
+    inputData.sort((a, b) => a.list_in - b.list_in);
     for (let i = 0; i < inputData.length; i++) {
       const add_last_korean = checkBatchimEnding(inputData[i].name) ? '으로' : '로';
-      message_data.push(`${inputData[i].list_in}번 선수가 ${inputData[i].name}${add_last_korean} 변경되었습니다.`);
+      message_data.push(
+        `${inputData[i].list_in}번 선수가 ${inputData[i].name}${add_last_korean} 변경되었습니다.`,
+      );
     }
 
     return res.status(200).json({ message: message_data });

@@ -3,6 +3,8 @@ import joi from 'joi';
 import { enforcePlayer } from '../utils/math/enforce.js';
 import { table_findFirst, row_create } from '../utils/tableFunction/table.js';
 
+import authMiddleware from '../middleswares/auth.middleware.js';
+
 const name_validation = joi.object({
   name: joi
     .string()
@@ -23,13 +25,12 @@ const stats_validation = joi.object({
 
 const enforce_router = express.Router();
 
-enforce_router.patch('/enforce', async (req, res, next) => {
+enforce_router.patch('/enforce', authMiddleware, async (req, res, next) => {
   const validation = await name_validation.validateAsync(req.body);
   const exist_hold_player = await table_findFirst(process.env.HOLD_PLAYERS, {
-    account_id: 2,
+    account_id: req.user.account_id,
     ...validation,
   });
-  // 향후 인증 인가를 바탕으로 한 req.account_id로 바꾸기
 
   if (!exist_hold_player) return res.status(404).json('강화할 선수가 없습니다.');
 
