@@ -3,6 +3,7 @@ import prisma from '../utils/prisma/index.js';
 import { teamsEdit, teamsList } from '../utils/teams/teams.js';
 import joi from 'joi';
 import checkBatchimEnding from '../utils/lastkorean/consonants.js';
+import authMiddleware from '../middleswares/auth.middleware.js';
 
 const router = express.Router();
 
@@ -18,10 +19,11 @@ const edit_validation = joi.object({
 });
 
 // 0. 자신이 보유한 선수 목록을 조회
-router.get('/teams/:account_id', async (req, res, next) => {
+// router.get('/teams/:account_id', async (req, res, next) => {
+router.get('/teams', authMiddleware, async (req, res, next) => {
   try {
     // 팀 식별 정보 사용
-    const { account_id } = req.params;
+    const { account_id } = req.user;
 
     // 입력받은 account_id가 존재하는가? -> 인증기능이 들어오면 더 이상 필요x
     const is_exist_team = await prisma.accounts.findFirst({
@@ -34,54 +36,53 @@ router.get('/teams/:account_id', async (req, res, next) => {
       where: { account_id: +account_id },
       select: {
         name: true,
-        enforece: true,
+        enforce: true,
         count: true,
       },
     });
 
     // 보유한 선수 목록 반환
-    return res.status(200).json({ data: hold_players_list });
+    return res.status(200).json(hold_players_list);
   } catch (error) {
     next(error);
   }
 });
 
 // 1. 현재 자신의 팀이 어떤 선수로 편성되어 있는지
-router.get('/teams/:account_id/list', async (req, res, next) => {
+router.get('/teams/list', authMiddleware, async (req, res, next) => {
   try {
     // 팀 식별 정보를 사용
-    const { account_id } = req.params;
+    const { account_id } = req.user;
 
     // 입력받은 account_id가 존재하는가? -> 인증기능이 들어오면 더 이상 필요x
     const is_exist_team = await prisma.accounts.findFirst({
       where: { account_id: +account_id },
     });
-    if (!is_exist_team) return res.status(400).json({ message: '계정이 존재하지 않습니다.' });
+    if (!is_exist_team) return res.status(400).json('계정이 존재하지 않습니다.');
 
     // 현재 팀 편성 리스트 반환
-    return res.status(200).json({ message: await teamsList(+account_id) });
+    return res.status(200).json(await teamsList(+account_id));
   } catch (error) {
     next(error);
   }
 });
 
 // 2. 입력한 내용대로 편성 변경
-router.patch('/teams/:account_id/edit', async (req, res, next) => {
+router.patch('/teams/edit', authMiddleware, async (req, res, next) => {
   try {
     // 팀 식별 정보를 사용
-    const { account_id } = req.params;
-
+    const { account_id } = req.user;
     const inputData = req.body;
 
     //   입력받은 account_id가 존재하는가? -> 인증기능이 들어오면 더 이상 필요x
     const is_exist_team = await prisma.accounts.findFirst({
       where: { account_id: +account_id },
     });
-    if (!is_exist_team) return res.status(400).json({ message: '계정이 존재하지 않습니다.' });
+    if (!is_exist_team) return res.status(400).json('계정이 존재하지 않습니다.');
 
     // // 데이터를 하나도 입력받지 않았을 때
     if (inputData.length === 0)
-      return res.status(400).json({ message: '교체할 선수 정보를 입력해주세요.' });
+      return res.status(400).json('교체할 선수 정보를 입력해주세요.');
 
     // 데이터 유효성 검사
     for (let i = 0; i < inputData.length; i++) {
@@ -92,9 +93,9 @@ router.patch('/teams/:account_id/edit', async (req, res, next) => {
     for (let i = 0; i < inputData.length - 1; i++) {
       for (let j = i + 1; j < inputData.length; j++) {
         if (inputData[i].list_in === inputData[j].list_in)
-          return res.status(400).json({ message: '선발 번호 중복입니다.' });
+          return res.status(400).json('선발 번호 중복입니다.');
         if (inputData[i].name === inputData[j].name)
-          return res.status(400).json({ message: '선수명 중복입니다.' });
+          return res.status(400).json("선수명 중복입니다.");
       }
     }
 
@@ -113,7 +114,7 @@ router.patch('/teams/:account_id/edit', async (req, res, next) => {
       );
     }
 
-    return res.status(200).json({ message: message_data });
+    return res.status(200).json(message_data);
   } catch (err) {
     next(err);
   }
