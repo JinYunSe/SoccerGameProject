@@ -1,7 +1,6 @@
 import express from 'express';
 import joi from 'joi';
-import { enforcePlayer } from '../utils/math/enforce.js';
-import { table_findFirst, row_create } from '../utils/tableFunction/table.js';
+import { table_findFirst, row_create, row_update } from '../utils/tableFunction/table.js';
 
 import authMiddleware from '../middleswares/auth.middleware.js';
 
@@ -39,8 +38,14 @@ enforce_router.patch('/enforce', authMiddleware, async (req, res, next) => {
       return res.status(200).json('모든 강화가 완료된 선수 입니다.');
     else if (exist_hold_player.enforce >= exist_hold_player.count)
       return res.status(402).json('강화 재화가 부족합니다.');
+    exist_hold_player.count -= exist_hold_player.enforce;
+    exist_hold_player.enforce += 1;
+    const result = await row_update(
+      process.env.HOLD_PLAYERS,
+      { id: exist_hold_player.id },
+      { enforce: exist_hold_player.enforce, count: exist_hold_player.count },
+    );
 
-    const result = await enforcePlayer(exist_hold_player.id, exist_hold_player.enforce);
     return res.status(201).json(result);
   } catch (error) {
     next(error);

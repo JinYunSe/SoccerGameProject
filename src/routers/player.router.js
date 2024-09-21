@@ -2,7 +2,13 @@ import express from 'express';
 import prisma from '../utils/prisma/index.js';
 import { probabilityAdjustment } from '../utils/players/players.js';
 
-import { row_delete, row_update, table_findFirst } from '../utils/tableFunction/table.js';
+import {
+  row_create,
+  row_delete,
+  row_update,
+  table_findFirst,
+  table_findMany,
+} from '../utils/tableFunction/table.js';
 
 import checkBatchimEnding from '../utils/lastkorean/consonants.js';
 import joi from 'joi';
@@ -40,7 +46,7 @@ const updated_validation = joi.object({
     .min(1)
     .max(191)
     .required(),
-  rarity: joi.string().valid('SSR', 'SR', 'R').required(),
+  rarity: joi.string().valid('SSR', 'SR', 'R').optional(),
   stats_run: joi.number().min(0).max(2147483647).optional(),
   stats_goal_decision: joi.number().min(0).max(2147483647).optional(),
   stats_power: joi.number().integer().min(0).max(2147483647).optional(),
@@ -56,11 +62,7 @@ player_router.post('/player', async (req, res, next) => {
     if (await table_findFirst(process.env.PLAYERS, { name: validation.name }))
       return res.status(401).json('이미 존재하는 선수 입니다.');
 
-    await prisma.players.create({
-      data: {
-        ...validation,
-      },
-    });
+    await row_create(process.env.PLAYERS, { ...validation });
 
     await probabilityAdjustment(validation.rarity);
 
@@ -117,20 +119,16 @@ player_router.patch('/player', async (req, res, next) => {
 
 // 선수 전체 조회 API
 player_router.get('/players', async (req, res, next) => {
-  const gambling_list = await prisma.players.findMany({
-    select: {
-      name: true,
-      rarity: true,
-      stats_run: true,
-      stats_goal_decision: true,
-      stats_power: true,
-      stats_defense: true,
-      stats_stamina: true,
-      range: true,
-    },
-    orderBy: [{ rarity: 'asc' }, { range: 'asc' }],
-  });
-  return res.status(200).json(gambling_list);
+  return res
+    .status(200)
+    .json(
+      await table_findMany(
+        process.env.PLAYERS,
+        {},
+        {},
+        { orderBy: [{ rarity: 'asc' }, { range: 'asc' }] },
+      ),
+    );
 });
 
 // 해당 선수 조회 API

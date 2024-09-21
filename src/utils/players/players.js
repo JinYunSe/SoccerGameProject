@@ -1,7 +1,7 @@
 import prisma from '../prisma/index.js';
 
 const rarityPlayerList = async (rarity) => {
-  const rarity_players_list = await prisma.players.findMany({
+  return await prisma.players.findMany({
     where: { rarity },
     select: {
       name: true,
@@ -17,10 +17,6 @@ const rarityPlayerList = async (rarity) => {
       range: 'asc',
     },
   });
-  for (let i = 0; i < rarity_players_list.length; i++) {
-    console.log(i + '체크 : ' + rarity_players_list[i].name);
-  }
-  return rarity_players_list;
 };
 
 // player_id Int pk 가 있었다면prisma.players.count로 등급별 개수를 구하고

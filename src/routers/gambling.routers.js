@@ -83,13 +83,22 @@ gambling_router.get('/gambling', authMiddleware, async (req, res) => {
 });
 
 // 전체 유저 선수 목록 조회
+// DB 조회에 사용
 gambling_router.get('/gambling/result', async (req, res, next) => {
   return res
     .status(200)
-    .json(await table_findMany(process.env.HOLD_PLAYERS, {}, { player: { rarity: true } }));
+    .json(
+      await table_findMany(
+        process.env.HOLD_PLAYERS,
+        {},
+        { player: { select: { rarity: true } } },
+        { orderBy: [{ player: { rarity: 'asc' } }] },
+      ),
+    );
 });
 
 // 특정 유저 선수 목록 조회
+// DB 조회에 사용
 gambling_router.get('/gambling/:account_id', async (req, res, next) => {
   try {
     const { account_id } = await account_validate.validateAsync(req.params);
@@ -99,7 +108,8 @@ gambling_router.get('/gambling/:account_id', async (req, res, next) => {
         await table_findMany(
           process.env.HOLD_PLAYERS,
           { account_id },
-          { player: { rarity: true } },
+          { player: { select: { rarity: true } } },
+          { orderBy: [{ account_id: 'asc' }, { player: { rarity: 'asc' } }] },
         ),
       );
   } catch (error) {
