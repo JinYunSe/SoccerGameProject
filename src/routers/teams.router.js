@@ -1,15 +1,15 @@
 import express from 'express';
 import prisma from '../utils/prisma/index.js';
-import { teamsEdit, teamsList } from '../utils/teams/teams.js';
+import { teamsEdit, teamsList, realStat } from '../utils/teams/teams.js';
 import joi from 'joi';
 import checkBatchimEnding from '../utils/lastkorean/consonants.js';
 import authMiddleware from '../middleswares/auth.middleware.js';
-
+import { table_findMany } from '../utils/tableFunction/table.js';
 const router = express.Router();
 
 // 유효성 검사
 const edit_validation = joi.object({
-  list_in: joi.number().min(1).max(3).required(),
+  list_in: joi.number().integer().min(1).max(3).required(),
   name: joi
     .string()
     .pattern(/^[가-힣\s]+$/)
@@ -18,28 +18,34 @@ const edit_validation = joi.object({
     .required(),
 });
 
-// 0. 자신이 보유한 선수 목록을 조회
-// router.get('/teams/:account_id', async (req, res, next) => {
+// 자신이 보유한 선수 목록을 조회
 router.get('/teams', authMiddleware, async (req, res, next) => {
   try {
     // 팀 식별 정보 사용
     const { account_id } = req.user;
 
-    // 입력받은 account_id가 존재하는가? -> 인증기능이 들어오면 더 이상 필요x
-    const is_exist_team = await prisma.accounts.findFirst({
-      where: { account_id: +account_id },
-    });
-    if (!is_exist_team) return res.status(400).json({ message: '계정이 존재하지 않습니다.' });
-
-    // account_id를 기반으로 hold_players에 저장된 같은 account_id를 가진 값을 전부 조회
-    const hold_players_list = await prisma.hold_players.findMany({
-      where: { account_id: +account_id },
-      select: {
+    let hold_players_list = await table_findMany(
+      process.env.HOLD_PLAYERS,
+      { account_id },
+      {
         name: true,
         enforce: true,
         count: true,
+        player: {
+          select: {
+            rarity: true,
+            stats_run: true,
+            stats_goal_decision: true,
+            stats_power: true,
+            stats_defense: true,
+            stats_stamina: true,
+          },
+        },
       },
-    });
+      { orderBy: [{ player: { rarity: 'asc' } }] },
+    );
+
+    hold_players_list = await realStat(hold_players_list);
 
     // 보유한 선수 목록 반환
     return res.status(200).json(hold_players_list);
@@ -54,14 +60,8 @@ router.get('/teams/list', authMiddleware, async (req, res, next) => {
     // 팀 식별 정보를 사용
     const { account_id } = req.user;
 
-    // 입력받은 account_id가 존재하는가? -> 인증기능이 들어오면 더 이상 필요x
-    const is_exist_team = await prisma.accounts.findFirst({
-      where: { account_id: +account_id },
-    });
-    if (!is_exist_team) return res.status(400).json('계정이 존재하지 않습니다.');
-
     // 현재 팀 편성 리스트 반환
-    return res.status(200).json(await teamsList(+account_id));
+    return res.status(200).json(await teamsList(account_id));
   } catch (error) {
     next(error);
   }
