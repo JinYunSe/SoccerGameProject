@@ -1,6 +1,5 @@
 import express from 'express';
-import prisma from '../utils/prisma/index.js';
-import { probabilityAdjustment } from '../utils/players/players.js';
+import { probabilityAdjustment } from '../utils/Math/gambling.math.js';
 
 import {
   row_create,
@@ -65,6 +64,7 @@ player_router.post('/player', async (req, res, next) => {
     await row_create(process.env.PLAYERS, { ...validation });
 
     await probabilityAdjustment(validation.rarity);
+    // 트랜잭션 처리 해야함 향후 방법 찾아서 추가하기
 
     const add_last_korean = checkBatchimEnding(validation.name) ? '이' : '가';
 
@@ -109,35 +109,10 @@ player_router.patch('/player', async (req, res, next) => {
       await probabilityAdjustment(is_exit.rarity);
     }
     // 기존 등급에서는 -1 된 개수로 Range 범위 수정
+    // 트랜잭션 처리 해야함 향후 방법 찾아서 추가하기
 
     const add_last_korean = checkBatchimEnding(is_exit.name) ? '이' : '가';
     return res.status(201).json(`선수 ${validation.name}${add_last_korean} 수정됐습니다.`);
-  } catch (error) {
-    next(error);
-  }
-});
-
-// 선수 전체 조회 API
-player_router.get('/players', async (req, res, next) => {
-  return res
-    .status(200)
-    .json(
-      await table_findMany(
-        process.env.PLAYERS,
-        {},
-        {},
-        { orderBy: [{ rarity: 'asc' }, { range: 'asc' }] },
-      ),
-    );
-});
-
-// 해당 선수 조회 API
-player_router.get('/player', async (req, res, next) => {
-  try {
-    const validation = await name_validation.validateAsync(req.body);
-    const is_exit = await table_findFirst(process.env.PLAYERS, { ...validation });
-    if (!is_exit) return res.status(404).json('해당 선수가 존재하지 않습니다.');
-    return res.status(200).json(is_exit);
   } catch (error) {
     next(error);
   }
@@ -154,9 +129,38 @@ player_router.delete('/player', async (req, res, next) => {
     await row_delete(process.env.PLAYERS, { ...validation });
 
     await probabilityAdjustment(is_exit.rarity);
+    // 트랜잭션 처리 해야함 향후 방법 찾아서 추가하기
 
     const add_last_korean = checkBatchimEnding(is_exit.name) ? '이' : '가';
     return res.status(201).json(`선수 ${is_exit.name}${add_last_korean} 삭제 됐습니다.`);
+  } catch (error) {
+    next(error);
+  }
+});
+
+// 선수 전체 조회 API
+// DB에서 선수 확률 범위 확인을 위해 구현
+player_router.get('/players', async (req, res, next) => {
+  return res
+    .status(200)
+    .json(
+      await table_findMany(
+        process.env.PLAYERS,
+        {},
+        { name: true, rarity: true, range: true },
+        { orderBy: [{ rarity: 'asc' }, { range: 'asc' }] },
+      ),
+    );
+});
+
+// 해당 선수 조회 API
+// DB에 해당 선수가 player 테이블에 있는지 확인 및 스탯 확인
+player_router.get('/player', async (req, res, next) => {
+  try {
+    const validation = await name_validation.validateAsync(req.body);
+    const is_exit = await table_findFirst(process.env.PLAYERS, { ...validation });
+    if (!is_exit) return res.status(404).json('해당 선수가 존재하지 않습니다.');
+    return res.status(200).json(is_exit);
   } catch (error) {
     next(error);
   }

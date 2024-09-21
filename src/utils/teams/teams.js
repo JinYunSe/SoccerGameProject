@@ -1,6 +1,21 @@
 import prisma from '../prisma/index.js';
 import { Prisma } from '@prisma/client';
 import { personalCal } from '../match/match.js';
+import { table_findFirst, table_findMany } from '../tableFunction/table.js';
+
+export const realStat = async (list) => {
+  for (let i = 0; i < list.length; i++) {
+    const add_status = await table_findFirst(list[i].player.rarity, {
+      enforce: list[i].enforce,
+    });
+    list[i].player.stats_run += add_status.add_run;
+    list[i].player.stats_goal_decision += add_status.add_goal_decision;
+    list[i].player.stats_power += add_status.add_power;
+    list[i].player.stats_defense += add_status.add_defense;
+    list[i].player.stats_stamina += add_status.add_stamina;
+  }
+  return list;
+};
 
 export const teamsEdit = async (account_id, list_in, name) => {
   // name1로 입력 받은 선수명 / 입력받은 선수가 보유 중인 선수인가?
@@ -37,7 +52,7 @@ export const teamsEdit = async (account_id, list_in, name) => {
         });
         return [listInZero, teamsListUpdate];
       }
-      
+
       // 없으면 입력받은 선수명의 list_in을 1로 변경
       else {
         const teamsListUpdate = await tx.hold_players.update({
@@ -59,11 +74,12 @@ export const teamsEdit = async (account_id, list_in, name) => {
 
 // 검색된 계정 정보의 hold_players에서 list_in의 값이 0이 아닌 값을 찾음
 export const teamsList = async (account_id) => {
-  const team_member_list = await prisma.hold_players.findMany({
-    where: { account_id: +account_id, NOT: { list_in: 0 } },
-    select: { list_in: true, name: true },
-    orderBy: { list_in: 'asc' },
-  });
+  const team_member_list = await table_findMany(
+    process.env.HOLD_PLAYERS,
+    { account_id, NOT: { list_in: 0 } },
+    { list_in: true, name: true },
+    { orderBy: { list_in: 'asc' } },
+  );
 
   let message_data = [];
   let teamPower = 0;

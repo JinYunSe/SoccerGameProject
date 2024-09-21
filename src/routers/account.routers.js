@@ -1,10 +1,9 @@
-import prisma from '../utils/prisma/index.js';
 import express from 'express';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import joi from 'joi';
 import authMiddleware from '../middleswares/auth.middleware.js';
-import { row_update } from '../utils/tableFunction/table.js';
+import { row_create, table_findFirst, row_update } from '../utils/tableFunction/table.js';
 
 const router = express.Router();
 
@@ -60,10 +59,8 @@ router.post('/sign-up', async (req, res, next) => {
     if (password !== confirmed_password)
       return res.status(400).json('비밀번호가 일치하지 않습니다.');
 
-    const is_exist_user = await prisma.accounts.findFirst({
-      where: {
-        OR: [{ id: id }, { nickname: nickname }],
-      },
+    const is_exist_user = await table_findFirst(process.env.ACCOUNTS, {
+      OR: [{ id: id }, { nickname: nickname }],
     });
 
     if (is_exist_user) {
@@ -77,13 +74,11 @@ router.post('/sign-up', async (req, res, next) => {
 
     const hashed_password = await bcrypt.hash(password, 10);
 
-    await prisma.accounts.create({
-      data: {
-        id,
-        password: hashed_password,
-        name,
-        nickname,
-      },
+    await row_create(process.env.ACCOUNTS, {
+      id,
+      password: hashed_password,
+      name,
+      nickname,
     });
 
     return res.status(201).json('회원가입에 성공했습니다.');
@@ -97,11 +92,7 @@ router.post('/sign-in', async (req, res, next) => {
   try {
     const { id, password } = await id_password_validate.validateAsync(req.body);
 
-    const user = await prisma.accounts.findFirst({
-      where: {
-        id,
-      },
-    });
+    const user = await table_findFirst(process.env.ACCOUNTS, { id });
 
     if (!user) return res.status(401).json('아이디가 존재하지 않습니다.');
     else if (!(await bcrypt.compare(password, user.password)))
