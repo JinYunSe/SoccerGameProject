@@ -1,31 +1,25 @@
 import prisma from '../prisma/index.js';
 
-const table_findFirst = async (table_name, value) => {
+const table_findFirst = async (table_name, where_condition) => {
   return await prisma[table_name].findFirst({
-    where: { ...value },
+    where: { ...where_condition },
   });
 };
 
-const table_findMany = async (table_name, value, includeFields) => {
+const table_findMany = async (table_name, where_condition, foreign_key, orderBy) => {
   return await prisma[table_name].findMany({
-    where: { ...value },
-    //
-    ...(includeFields
-      ? {
-          include: Object.keys(includeFields).reduce((acc, key) => {
-            acc[key] = {
-              select: includeFields[key], // 특정 컬럼만 선택
-            };
-            return acc;
-          }, {}),
-        }
-      : {}),
+    where: { ...where_condition },
+
+    include: {
+      ...foreign_key,
+    },
+    ...orderBy,
   });
 };
 
 const row_update = async (table_name, where_condition, value, tx) => {
   const db = tx ? tx : prisma;
-  await db[table_name].update({
+  return await db[table_name].update({
     where: { ...where_condition },
     data: {
       ...value,
