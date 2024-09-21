@@ -1,7 +1,7 @@
 import prisma from '../prisma/index.js';
 import { Prisma } from '@prisma/client';
 import { personalCal } from '../match/match.js';
-import { table_findFirst, table_findMany } from '../tableFunction/table.js';
+import { table_findFirst, table_findMany, row_update } from '../tableFunction/table.js';
 
 export const realStat = async (list) => {
   for (let i = 0; i < list.length; i++) {
@@ -34,35 +34,35 @@ export const teamsEdit = async (account_id, list_in, name) => {
     async (tx) => {
       // 있으면 0으로 변경하고 진행
       if (is_exist_list_in) {
-        const listInZero = await tx.hold_players.update({
-          data: {
-            list_in: 0,
-          },
-          where: {
-            id: is_exist_list_in.id,
-          },
-        });
+        const listInZero = await row_update(
+          process.env.HOLD_PLAYERS,
+          { id: is_exist_list_in.id },
+          { list_in: 0 },
+          tx,
+        );
 
         // name1 선수의 list_in을 1로 변경
-        const teamsListUpdate = await tx.hold_players.update({
-          data: { list_in },
-          where: {
+        const teamsListUpdate = await row_update(
+          process.env.HOLD_PLAYERS,
+          {
             id: is_exist_name.id,
           },
-        });
+          { list_in },
+          tx,
+        );
         return [listInZero, teamsListUpdate];
       }
 
       // 없으면 입력받은 선수명의 list_in을 1로 변경
       else {
-        const teamsListUpdate = await tx.hold_players.update({
-          data: {
-            list_in,
-          },
-          where: {
+        const teamsListUpdate = await row_update(
+          process.env.HOLD_PLAYERS,
+          {
             id: is_exist_name.id,
           },
-        });
+          { list_in },
+          tx,
+        );
         return [teamsListUpdate];
       }
     },
