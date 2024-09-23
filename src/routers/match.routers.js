@@ -1,8 +1,7 @@
 import express from 'express';
-import prisma from '../utils/prisma/index.js';
-import { teamCal, matchMaking, winRateCal } from '../utils/match/match.js';
+import { friendMatching, resultMatch, MMRChange } from '../utils/match/match.js';
 import { findOpponentUsers } from '../utils/users/user.js';
-import { realStat, teamsList, weightStat, findTeam } from '../utils/teams/teams.js';
+import { realStat, weightStat, findTeam } from '../utils/teams/teams.js';
 import authMiddleware from '../middleswares/auth.middleware.js';
 import joi from 'joi';
 
@@ -25,18 +24,34 @@ math_router.post(`/match/:opponent_id`, authMiddleware, async (req, res, next) =
   try {
     const { account_id } = req.user;
     const { opponent_id } = await opponent_id_validate.validateAsync(req.params);
-    const opponent = await prisma.accounts.findFirst({
-      where: { account_id: opponent_id },
-      select: {
-        account_id: true,
-      },
-    });
 
-    let result;
+    // 강화에 따른 수치 반영된 우리 팀
+    const my_team = await realStat(await findTeam(account_id));
 
-    result = await matchMaking(await teamCal(account_id), await teamCal(opponent_id));
+    if (my_team.length === 0) return res.status(404).json('팀 편성을 먼저해주세요');
 
-    return res.status(201).json({ result: result });
+    // 강화에 따른 수치 반영된 상대 팀
+    const opponent_team = await realStat(await findTeam(opponent_id));
+
+    if (my_team.length === 0) return res.status(404).json('상대 팀이 존재하지 않습니다.');
+
+    let my_sum_weight = 0,
+      opponent_team_weigth = 0;
+
+    // 우리팀 선수가 1 ~ 3개 일수 있고,
+    // 상대팀 선수가 1 ~ 3개 일수 있어서 반복문 따로 사용
+    for (let i = 0; i < my_team.length; i++) {
+      my_sum_weight += await weightStat(my_team[i]);
+    }
+
+    for (let i = 0; i < opponent_team.length; i++) {
+      opponent_team_weigth += await weightStat(opponent_team[i]);
+    }
+
+    const result = await friendMatching(my_sum_weight, opponent_team_weigth);
+
+    const win_draw_lose = await resultMatch(account_id, opponent_id, result);
+    return res.status(200).json(`${win_draw_lose}`);
   } catch (error) {
     next(error);
   }
@@ -60,21 +75,39 @@ math_router.post(`/rank`, authMiddleware, async (req, res, next) => {
   try {
     //현재 계정의 점수를 찾는다.
     const { account_id, point, win, lose, draw } = req.user;
-
-    //점수 오차범위 100내의 리스트를 구하고, 오차범위내에 상대가 없다면 스코프를 넓힌다.
+    let opponent_team = null;
+    let opponent = null;
     let count = 1;
-    let opponent_list = [];
+    let infinity = 0;
     do {
-      // 게임 매칭을 잡을 상대방들 찾기
-      opponent_list = await findOpponentUsers(account_id, point, count++);
-    } while (opponent_list.length === 0);
+      //점수 오차범위 100내의 리스트를 구하고, 오차범위내에 상대가 없다면 스코프를 넓힌다.
+      let opponent_list = [];
+      do {
+        // 게임 매칭을 잡을 상대방들 찾기
+        opponent_list = await findOpponentUsers(account_id, point, count++);
+      } while (opponent_list.length === 0);
 
-    // 난수로 상대방 한 유저 지목
-    const randomize = Math.floor(Math.random() * opponent_list.length);
-    const opponent = opponent_list[randomize];
+      // 난수로 상대방 한 유저 지목
+      const randomize = Math.floor(Math.random() * opponent_list.length);
+      opponent = opponent_list[randomize];
 
-    // 강화에 따른 수치 반영된 상대 팀
-    const opponent_team = await realStat(await findTeam(opponent.account_id));
+      // 강화에 따른 수치 반영된 상대 팀
+      opponent_team = await realStat(await findTeam(opponent.account_id));
+
+      if (opponent_team.length === 0 && infinity !== 10) {
+        count--;
+        infinity++;
+      }
+      // 상대 팀에 선수가 존재하지 않으면 다시 상대 찾기
+      // 범위 내에 상대방이 그 선수 밖에 없을 경우 10번 반복 후
+      // 범위를 늘려가며 다른 선수를 찾는다.(그에 따른 가중치도 바뀌게 된다.)
+      // 범위가 넓어질수록 어차피 이길 확률이 높은 게임은 더 이길 확률이 높아지고,
+      // 질 확률이 높은 게임은 더 질 확률이 높아지게 된다.
+
+      // 그에 따른 격차에 따라 패배시 점수가 낮게 낮아지고
+      // 승리시 점수가 낮게 증가한다.
+      // MMRChange에 그렇게 구현했습니다.
+    } while (opponent_team.length === 0);
 
     // 강화에 따른 수치 반영된 우리 팀
     const my_team = await realStat(await findTeam(account_id));
@@ -92,86 +125,37 @@ math_router.post(`/rank`, authMiddleware, async (req, res, next) => {
       opponent_team_weigth += await weightStat(opponent_team[i]);
     }
 
-    await matchMaking(my_team, opponent_team, count);
+    const result = await friendMatching(my_sum_weight, opponent_team_weigth);
 
-    //return res.status(201).json({ data: current });
-    return res.status(200).json('일단 동작 확인');
+    const win_draw_lose = await resultMatch(account_id, opponent.account_id, result, count);
+
+    const add_min = await MMRChange(
+      account_id,
+      opponent.account_id,
+      my_sum_weight,
+      opponent_team_weigth,
+      result,
+      count,
+    );
+
+    return result === 1
+      ? res.status(200).json(`${win_draw_lose}, point : ${add_min} 증가했습니다`)
+      : result === -1
+        ? res.status(200).json(`${win_draw_lose}, point : ${add_min} 감소했습니다.`)
+        : res.status(200).json(`${win_draw_lose}`);
   } catch (error) {
     next(error);
   }
 });
 
-/* 
-랭킹 조회 
+/*
+랭킹 조회
 _비즈니스 로직
 
-1. 포인트 기준으로, 내림차순 정렬 리스트 생성 반환. 
+1. 포인트 기준으로, 내림차순 정렬 리스트 생성 반환.
 2. 닉네임, 점수, 승,무,패. 팀파워, 승률 보여주기.
 */
-math_router.get(`/rank`, authMiddleware, async (req, res, next) => {
-  try {
-    const accountList = await prisma.accounts.findMany({
-      select: {
-        account_id: true,
-        nickname: true,
-        point: true,
-        win: true,
-        lose: true,
-        draw: true,
-      },
-      orderBy: {
-        point: 'desc',
-      },
-    });
 
-    for (let account of accountList) {
-      account.team_power = await teamCal(account.account_id);
-    }
-    for (let account of accountList) {
-      account.win_rate = await winRateCal(account.account_id);
-    }
-
-    return res.status(200).json({ data: accountList });
-  } catch (error) {
-    next(error);
-  }
-});
-
-//계산 테스트
-math_router.get(`/search/:account_id/:list_in`, async (req, res, next) => {
-  const { account_id, list_in } = req.params;
-  const result = await personalCal(account_id, +list_in);
-
-  return res.status(200).json({ message: `성공`, result: result });
-});
-
-//팀 계산 테스트
-math_router.get(`/search/:account_id/`, async (req, res, next) => {
-  const { account_id } = req.params;
-  const result = await teamCal(account_id);
-
-  return res.status(200).json({ message: `성공`, result: result });
-});
-
-//임시 유저 계정 조회
-math_router.get(`/accounts`, async (req, res, next) => {
-  const accountList = await prisma.accounts.findMany({
-    select: {
-      account_id: true,
-      nickname: true,
-      win: true,
-      lose: true,
-      draw: true,
-      hold_players: {
-        select: {
-          name: true,
-          list_in: true,
-        },
-      },
-    },
-  });
-
-  return res.status(200).json({ data: accountList });
-});
+// 새로 만들기
 
 export default math_router;
