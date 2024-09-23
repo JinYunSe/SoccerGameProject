@@ -7,6 +7,14 @@ const table_findFirst = async (table_name, where_condition, tx) => {
   });
 };
 
+const table_findFirstInclude = async (table_name, where_condition, foreign_key, tx) => {
+  const db = tx ? tx : prisma;
+  return await db[table_name].findFirst({
+    where: { ...where_condition },
+    include: { ...foreign_key },
+  });
+};
+
 const table_findManyInculde = async (table_name, where_condition, foreign_key, orderBy, tx) => {
   const db = tx ? tx : prisma;
   return await db[table_name].findMany({
@@ -66,4 +74,5 @@ export {
   row_delete,
   row_updateMany,
   table_findManyInculde,
+  table_findFirstInclude,
 };

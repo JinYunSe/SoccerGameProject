@@ -1,5 +1,5 @@
 import express from 'express';
-import { probabilityAdjustment } from '../utils/Math/gambling.math.js';
+import { probabilityAdjustment } from '../utils/math/gambling.math.js';
 
 import {
   row_create,

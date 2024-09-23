@@ -50,6 +50,10 @@ const id_password_validate = joi.object({
     .required(),
 });
 
+const money_validate = joi.object({
+  money: joi.number().integer().min(1000).multiple(1000).required(),
+});
+
 // 회원가입 API
 router.post('/sign-up', async (req, res, next) => {
   try {
@@ -108,14 +112,19 @@ router.post('/sign-in', async (req, res, next) => {
 });
 
 router.patch('/addcash', authMiddleware, async (req, res, next) => {
-  let { account_id, nickname, cash, total_cash } = req.user;
-  cash += 10000;
-  total_cash += 10000;
-  await row_update(process.env.ACCOUNTS, { account_id }, { cash, total_cash });
+  try {
+    const { money } = await money_validate.validateAsync(req.body);
+    let { account_id, nickname, cash, total_cash } = req.user;
+    cash += money;
+    total_cash += money;
+    await row_update(process.env.ACCOUNTS, { account_id }, { cash, total_cash });
 
-  return res
-    .status(200)
-    .json(`10000원이 충전 됐습니다! ${nickname}은 여태까지 ${total_cash}원 충전하셨습니다`);
+    return res
+      .status(200)
+      .json(`${money}원이 충전 됐습니다! ${nickname}은 여태까지 ${total_cash}원 충전하셨습니다`);
+  } catch (error) {
+    next(error);
+  }
 });
 
 export default router;
