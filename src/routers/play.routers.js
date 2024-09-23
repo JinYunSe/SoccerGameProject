@@ -1,6 +1,6 @@
 import express from 'express';
 import prisma from '../utils/prisma/index.js';
-import { teamCal, personalCal, matchMaking } from '../utils/match/match.js';
+import { teamCal, personalCal, matchMaking, winRateCal } from '../utils/match/match.js';
 import authMiddleware from '../middleswares/auth.middleware.js';
 import joi from 'joi';
 
@@ -114,21 +114,36 @@ const findOpponent = async (currentPoint, count) => {
 랭킹 조회 
 _비즈니스 로직
 
-1. 포인트 기준으로, 내림차순 정렬 리스트 생성 반환
+1. 포인트 기준으로, 내림차순 정렬 리스트 생성 반환. 
+2. 닉네임, 점수, 승,무,패. 팀파워, 승률 보여주기.
 */
 play_router.get(`/rank`, authMiddleware, async (req, res, next) => {
-  const accountList = await prisma.accounts.findMany({
-    select: {
-      account_id: true,
-      nickname: true,
-      point: true,
-    },
-    orderBy: {
-      point: 'Desc',
-    },
-  });
+  try {
+    const accountList = await prisma.accounts.findMany({
+      select: {
+        account_id: true,
+        nickname: true,
+        point: true,
+        win: true,
+        lose: true,
+        draw: true,
+      },
+      orderBy: {
+        point: 'Desc',
+      },
+    });
 
-  return res.status(200).json({ data: accountList });
+    for (let account of accountList) {
+      account.team_power = await teamCal(account.account_id);
+    }
+    for (let account of accountList) {
+      account.win_rate = await winRateCal(account.account_id);
+    }
+
+    return res.status(200).json({ data: accountList });
+  } catch (error) {
+    next(error);
+  }
 });
 
 //계산 테스트

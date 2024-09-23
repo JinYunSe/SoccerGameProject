@@ -1,6 +1,7 @@
 import prisma from '../prisma/index.js';
 import { realStat } from '../teams/teams.js';
 import { row_update } from '../tableFunction/table.js';
+import { when } from 'joi';
 
 //팀 리스트 생성
 const teamsList = async (account_id) => {
@@ -65,6 +66,32 @@ const personalCal = async (account_id, num) => {
   }
 
   return Math.floor(summary);
+};
+
+//계정 승률 계산 함수
+const winRateCal = async (account_id) => {
+  let rate;
+  let all_game;
+  const selected_id = await prisma.accounts.findFirst({
+    where: { account_id: +account_id },
+    select: {
+      win: true,
+      lose: true,
+      draw: true,
+    },
+  });
+  if (!selected_id) {
+    return 0;
+  }
+  all_game = selected_id.win + selected_id.lose + selected_id.draw;
+
+  if (all_game === 0) {
+    return 0;
+  }
+
+  rate = (selected_id.win / all_game) * 100;
+
+  return +rate.toFixed(2);
 };
 
 //점수 비교 게임 플레이 함수
@@ -199,4 +226,4 @@ const matchResult = async (
 //   });
 // };
 
-export { teamCal, personalCal, matchMaking };
+export { teamCal, personalCal, matchMaking, winRateCal };
