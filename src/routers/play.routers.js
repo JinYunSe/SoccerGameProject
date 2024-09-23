@@ -61,37 +61,54 @@ play_router.post(`/rank`, authMiddleware, async (req, res, next) => {
 
     const currentPoint = current.point;
 
-    //점수 오차범위 100내의 리스트를 구한다.
-    const accountList = await prisma.accounts.findMany({
-      where: {
-        point: {
-          gte: currentPoint - 100, // 현재 계정의 점수 -100보다 크거나 같은 값
-          lte: currentPoint + 100, // 현재 계정의 점수 +100보다 작거나 같은 값
-        },
-      },
+    //점수 오차범위 100내의 리스트를 구하고, 오차범위내에 상대가 없다면 스코프를 넓힌다.
+    let count = 1;
+    let accountList = [];
+    do {
+      accountList = await findOpponent(currentPoint, count++);
+    } while (accountList.length === 0 && count <= 10);
 
-      select: {
-        account_id: true,
-        nickname: true,
-        point: true,
-      },
-      orderBy: {
-        point: 'desc',
-      },
-    });
+    //count? 횟수 써먹기
 
     //randomize_ 난수 생성후 난수번호의 아이디 찾기.
     const randomize = Math.floor(Math.random() * accountList.length);
     const opponent = accountList[randomize].account_id;
 
     //랭크 매칭 승패 계산
-    await matchMaking(await teamCal(account_id), await teamCal(opponent), account_id, opponent);
+    await matchMaking(
+      await teamCal(account_id),
+      await teamCal(opponent),
+      account_id,
+      opponent,
+      count,
+    );
 
     return res.status(201).json({ data: current });
   } catch (error) {
     next(error);
   }
 });
+
+const findOpponent = async (currentPoint, count) => {
+  let rank_scope = 100 * count;
+  const accountList = await prisma.accounts.findMany({
+    where: {
+      point: {
+        gte: currentPoint - rank_scope,
+        lte: currentPoint + rank_scope,
+      },
+    },
+    select: {
+      account_id: true,
+      nickname: true,
+      point: true,
+    },
+    orderBy: {
+      point: 'desc',
+    },
+  });
+  return accountList;
+};
 
 /* 
 랭킹 조회 
