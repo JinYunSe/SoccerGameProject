@@ -50,6 +50,10 @@ const id_password_validate = joi.object({
     .required(),
 });
 
+const money_validate = joi.object({
+  money: joi.number().integer().min(1000).multiple(1000).required(),
+});
+
 // 회원가입 API
 router.post('/sign-up', async (req, res, next) => {
   try {
@@ -108,9 +112,11 @@ router.post('/sign-in', async (req, res, next) => {
 });
 
 router.patch('/addcash', authMiddleware, async (req, res, next) => {
+  const { money } = await money_validate.validateAsync(req.body);
   let { account_id, nickname, cash, total_cash } = req.user;
-  cash += 10000;
-  total_cash += 10000;
+
+  cash += money;
+  total_cash += money;
   await row_update(process.env.ACCOUNTS, { account_id }, { cash, total_cash });
 
   return res

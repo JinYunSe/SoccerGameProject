@@ -1,5 +1,5 @@
 import jwt from 'jsonwebtoken';
-import prisma from '../utils/prisma/index.js';
+import { table_findFirst } from '../utils/tableFunction/table.js';
 
 export default async function (req, res, next) {
   try {
@@ -16,9 +16,7 @@ export default async function (req, res, next) {
 
     const account_id = decoded_token.account_id;
 
-    const user = await prisma.accounts.findFirst({
-      where: { account_id },
-    });
+    const user = await table_findFirst(process.env.ACCOUNTS, { account_id });
 
     if (!user) {
       throw new Error('토큰 사용자가 존재하지 않습니다.');
