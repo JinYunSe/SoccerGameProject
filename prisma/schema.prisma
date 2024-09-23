@@ -80,6 +80,7 @@ model SSR{
   add_power Int
   add_defense Int
   add_stamina Int
+  probability Float @default(0)
   @@map("SSR")
 }
 
@@ -90,6 +91,7 @@ model SR{
   add_power Int
   add_defense Int
   add_stamina Int
+  probability Float @default(0)
   @@map("SR")
 }
 
@@ -100,5 +102,6 @@ model R{
   add_power Int
   add_defense Int
   add_stamina Int
+  probability Float @default(0)
   @@map("R")
 }

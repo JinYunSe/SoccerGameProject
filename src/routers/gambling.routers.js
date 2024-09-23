@@ -1,7 +1,6 @@
 import express from 'express';
-import joi from 'joi';
 
-import { randomNumber01, rarityOutputPrint } from '../utils/Math/gambling.math.js';
+import { randomNumber01, rarityOutputPrint } from '../utils/math/gambling.math.js';
 
 import {
   table_findFirst,
