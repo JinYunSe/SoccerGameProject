@@ -1,7 +1,7 @@
 import prisma from '../prisma/index.js';
 import { realStat } from '../teams/teams.js';
 import { row_update } from '../tableFunction/table.js';
-import { when } from 'joi';
+// import { when } from 'joi';
 
 //팀 리스트 생성
 const teamsList = async (account_id) => {
