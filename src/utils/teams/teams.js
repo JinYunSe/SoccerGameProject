@@ -2,7 +2,7 @@ import prisma from '../prisma/index.js';
 import { Prisma } from '@prisma/client';
 import { table_findFirst, table_findMany, row_update } from '../tableFunction/table.js';
 
-export const realStat = async (list) => {
+const realStat = async (list) => {
   for (let i = 0; i < list.length; i++) {
     const add_status = await table_findFirst(list[i].player.rarity, {
       enforce: list[i].enforce,
@@ -13,6 +13,7 @@ export const realStat = async (list) => {
     list[i].player.stats_defense += add_status.add_defense;
     list[i].player.stats_stamina += add_status.add_stamina;
   }
+  console.log(list);
   return list;
 };
 
@@ -43,14 +44,14 @@ const statCal = async (list) => {
   return summary;
 };
 
-export const teamsEdit = async (account_id, list_in, name) => {
+const teamsEdit = async (account_id, list_in, name) => {
   // name1로 입력 받은 선수명 / 입력받은 선수가 보유 중인 선수인가?
   const is_exist_name = await prisma.hold_players.findFirst({
     where: { account_id, name },
   });
   console.log(is_exist_name);
   // 선수 미보유?
-  if (!is_exist_name) return res.status(400).json({ message: '해당 선수가 존재하지 않습니다.' });
+  if (!is_exist_name) return res.status(400).json('해당 선수가 존재하지 않습니다.');
 
   // 기존 출전번호가 1인 선수가 있는가? 있으면 0으로 변경 없으면 그냥 진행
   const is_exist_list_in = await prisma.hold_players.findFirst({
@@ -98,11 +99,12 @@ export const teamsEdit = async (account_id, list_in, name) => {
   );
 };
 
-// 검색된 계정 정보의 hold_players에서 list_in의 값이 0이 아닌 값을 찾음
-export const teamsList = async (account_id) => {
-  const team_member_list = await table_findMany(
+// 팀 찾기
+const findTeam = async (opponent_accunt_id) => {
+  console.log('상대방 id : ' + opponent_accunt_id);
+  return await table_findMany(
     process.env.HOLD_PLAYERS,
-    { account_id, NOT: { list_in: 0 } },
+    { account_id: opponent_accunt_id, NOT: { list_in: 0 } },
     {
       list_in: true,
       name: true,
@@ -120,6 +122,11 @@ export const teamsList = async (account_id) => {
     },
     { orderBy: { list_in: 'asc' } },
   );
+};
+
+// 검색된 계정 정보의 hold_players에서 list_in의 값이 0이 아닌 값을 찾음
+const teamsList = async (account_id) => {
+  const team_member_list = await findTeam(account_id);
 
   if (team_member_list.length === 0) return '편성된 선수가 없습니다';
 
@@ -138,3 +145,29 @@ export const teamsList = async (account_id) => {
 
   return message_data;
 };
+
+//편성 선수 개인 점수 계산 함수
+const weightStat = async (game_player) => {
+  let summary =
+    game_player.player.stats_run * 0.1 +
+    game_player.player.stats_goal_decision * 0.25 +
+    game_player.player.stats_power * 0.15 +
+    game_player.player.stats_defense * 0.3 +
+    game_player.player.stats_stamina * 0.2;
+
+  switch (game_player.player.rarity) {
+    case 'SSR':
+      summary *= 1.5;
+      break;
+    case 'SR':
+      summary *= 1.2;
+      break;
+    case 'R':
+      summary *= 0.9;
+      break;
+  }
+
+  return Math.floor(summary);
+};
+
+export { findTeam, teamsList, teamsEdit, realStat, weightStat };

@@ -4,7 +4,7 @@ import { teamsEdit, teamsList, realStat } from '../utils/teams/teams.js';
 import joi from 'joi';
 import checkBatchimEnding from '../utils/lastkorean/consonants.js';
 import authMiddleware from '../middleswares/auth.middleware.js';
-import { table_findMany } from '../utils/tableFunction/table.js';
+import { table_findFirst, table_findMany } from '../utils/tableFunction/table.js';
 const router = express.Router();
 
 // 유효성 검사
@@ -99,6 +99,13 @@ router.patch('/teams/edit', authMiddleware, async (req, res, next) => {
     }
 
     // 데이터 베이스와 비교 후 if 문에서 존재 여부 처리해주기
+    for (let i = 0; i < inputData.length; i++) {
+      const is_exist = await table_findFirst(process.env.HOLD_PLAYERS, {
+        account_id,
+        name: inputData[i].name,
+      });
+      if (!is_exist) return res.status(404).json('보유하지 않은 선수가 존재합니다.');
+    }
 
     // // name1로 입력 받은 선수명 / 입력받은 선수가 보유 중인 선수인가?
     for (let i = 0; i < inputData.length; i++) {

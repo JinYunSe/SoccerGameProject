@@ -7,7 +7,7 @@ import player_router from './routers/player.router.js';
 import teams_router from './routers/teams.router.js';
 import enforce_router from './routers/enforce_router.js';
 import gambling_router from './routers/gambling.routers.js';
-import play_router from './routers/play.routers.js';
+import match_router from './routers/match.routers.js';
 import account_router from './routers/account.routers.js';
 
 const app = express();
@@ -21,7 +21,7 @@ app.use('/api', [
   player_router,
   gambling_router,
   teams_router,
-  play_router,
+  match_router,
   enforce_router,
 ]);
 

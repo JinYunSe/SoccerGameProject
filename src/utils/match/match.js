@@ -1,71 +1,13 @@
 import prisma from '../prisma/index.js';
-import { realStat } from '../teams/teams.js';
 import { row_update } from '../tableFunction/table.js';
-// import { when } from 'joi';
 
-//팀 리스트 생성
-const teamsList = async (account_id) => {
-  const team_member_list = await table_findMany(
-    process.env.HOLD_PLAYERS,
-    { account_id, NOT: { list_in: 0 } },
-    { list_in: true, name: true },
-    { orderBy: { list_in: 'asc' } },
-  );
-  return team_member_list;
-};
-
-//편성팀 점수 계산 함수
 const teamCal = async (account_id) => {
   let team_summary = 0;
-  let team_list = await teamsList(account_id);
-  team_list = await realStat(team_list);
 
   for (let i = 0; i < team_list.length; i++) {
     team_summary += await personalCal(account_id, team_list[i].list_in);
   }
   return team_summary;
-};
-
-//편성 선수 개인 점수 계산 함수
-const personalCal = async (account_id, num) => {
-  let summary = 0;
-  const selected_player = await prisma.hold_players.findFirst({
-    where: { account_id: +account_id, list_in: num },
-  });
-
-  if (!selected_player) {
-    return summary; // 정보 없을시 0 반환
-  }
-
-  const stat_list = await prisma.players.findFirst({
-    where: { name: selected_player.name },
-  });
-
-  let base =
-    stat_list.stats_run * 0.1 +
-    stat_list.stats_goal_decision * 0.25 +
-    stat_list.stats_power * 0.15 +
-    stat_list.stats_defense * 0.3 +
-    stat_list.stats_stamina * 0.2 +
-    selected_player.enforece;
-
-  switch (
-    stat_list.rarity //db에서 직접 꺼내오는 방식으로,
-  ) {
-    case 'SSR':
-      summary = base * 1.5;
-      break;
-    case 'SR':
-      summary = base * 1.2;
-      break;
-    case 'R':
-      summary = base;
-      break;
-    default:
-      break;
-  }
-
-  return Math.floor(summary);
 };
 
 //계정 승률 계산 함수
@@ -95,11 +37,11 @@ const winRateCal = async (account_id) => {
 };
 
 //점수 비교 게임 플레이 함수
-const matchMaking = async (user, opponent, account_id, opponent_id, count) => {
+const matchMaking = async (my_team, opponent_team, count) => {
   const max_score = user + opponent;
   const randomValue = Math.random() * max_score;
 
-  if (opponent_id === undefined) {
+  if (count === undefined) {
     // id가 없는 경우의 로직_ 친선전
     return await friendMatching(randomValue, max_score, user);
   } else {
@@ -215,15 +157,5 @@ const matchResult = async (
     return 'lose';
   }
 };
-//db 업데이트 문
-// const row_update = async (table_name, where_condition, value, tx) => {
-//   const db = tx ? tx : prisma;
-//   return await db[table_name].update({
-//     where: { ...where_condition },
-//     data: {
-//       ...value,
-//     },
-//   });
-// };
 
-export { teamCal, personalCal, matchMaking, winRateCal };
+export { teamCal, matchMaking, winRateCal };

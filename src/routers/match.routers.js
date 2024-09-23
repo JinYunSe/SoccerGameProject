@@ -1,10 +1,16 @@
 import express from 'express';
 import prisma from '../utils/prisma/index.js';
-import { teamCal, personalCal, matchMaking, winRateCal } from '../utils/match/match.js';
+import { teamCal, matchMaking, winRateCal } from '../utils/match/match.js';
+import { findOpponentUsers } from '../utils/users/user.js';
+import { realStat, teamsList, weightStat, findTeam } from '../utils/teams/teams.js';
 import authMiddleware from '../middleswares/auth.middleware.js';
 import joi from 'joi';
 
-const play_router = express.Router();
+const math_router = express.Router();
+
+const opponent_id_validate = joi.object({
+  opponent_id: joi.number().integer().min(1).max(2147483647).required(),
+});
 
 /*
 플레이 매칭(친선 경기)
@@ -15,10 +21,10 @@ _비즈니스 로직
 3.승패 결과는 업데이트 하지 않고, 승패 문자열만 반환해준다.
 */
 
-play_router.post(`/match/:opponent_id`, authMiddleware, async (req, res, next) => {
+math_router.post(`/match/:opponent_id`, authMiddleware, async (req, res, next) => {
   try {
     const { account_id } = req.user;
-    const { opponent_id } = req.params;
+    const { opponent_id } = await opponent_id_validate.validateAsync(req.params);
     const opponent = await prisma.accounts.findFirst({
       where: { account_id: opponent_id },
       select: {
@@ -36,7 +42,7 @@ play_router.post(`/match/:opponent_id`, authMiddleware, async (req, res, next) =
   }
 });
 
-/* 
+/*
 랭크 매칭
 _비즈니스 로직
 
@@ -50,65 +56,50 @@ _비즈니스 로직
 **IF 상대의 점수가 나보다 높았다면 +5, 나보다 낮았다면 -5 증감치.
 */
 
-play_router.post(`/rank`, authMiddleware, async (req, res, next) => {
+math_router.post(`/rank`, authMiddleware, async (req, res, next) => {
   try {
     //현재 계정의 점수를 찾는다.
-    const { account_id } = req.user;
-    const current = await prisma.accounts.findFirst({
-      where: { account_id: account_id },
-      select: { id: true, point: true, win: true, lose: true, draw: true },
-    });
-
-    const currentPoint = current.point;
+    const { account_id, point, win, lose, draw } = req.user;
 
     //점수 오차범위 100내의 리스트를 구하고, 오차범위내에 상대가 없다면 스코프를 넓힌다.
     let count = 1;
-    let accountList = [];
+    let opponent_list = [];
     do {
-      accountList = await findOpponent(currentPoint, count++);
-    } while (accountList.length === 0 && count <= 10);
+      // 게임 매칭을 잡을 상대방들 찾기
+      opponent_list = await findOpponentUsers(account_id, point, count++);
+    } while (opponent_list.length === 0);
 
-    //count? 횟수 써먹기
+    // 난수로 상대방 한 유저 지목
+    const randomize = Math.floor(Math.random() * opponent_list.length);
+    const opponent = opponent_list[randomize];
 
-    //randomize_ 난수 생성후 난수번호의 아이디 찾기.
-    const randomize = Math.floor(Math.random() * accountList.length);
-    const opponent = accountList[randomize].account_id;
+    // 강화에 따른 수치 반영된 상대 팀
+    const opponent_team = await realStat(await findTeam(opponent.account_id));
 
-    //랭크 매칭 승패 계산
-    await matchMaking(
-      await teamCal(account_id),
-      await teamCal(opponent),
-      account_id,
-      opponent,
-      count,
-    );
+    // 강화에 따른 수치 반영된 우리 팀
+    const my_team = await realStat(await findTeam(account_id));
 
-    return res.status(201).json({ data: current });
+    let my_sum_weight = 0,
+      opponent_team_weigth = 0;
+
+    // 우리팀 선수가 1 ~ 3개 일수 있고,
+    // 상대팀 선수가 1 ~ 3개 일수 있어서 반복문 따로 사용
+    for (let i = 0; i < my_team.length; i++) {
+      my_sum_weight += await weightStat(my_team[i]);
+    }
+
+    for (let i = 0; i < opponent_team.length; i++) {
+      opponent_team_weigth += await weightStat(opponent_team[i]);
+    }
+
+    await matchMaking(my_team, opponent_team, count);
+
+    //return res.status(201).json({ data: current });
+    return res.status(200).json('일단 동작 확인');
   } catch (error) {
     next(error);
   }
 });
-
-const findOpponent = async (currentPoint, count) => {
-  let rank_scope = 100 * count;
-  const accountList = await prisma.accounts.findMany({
-    where: {
-      point: {
-        gte: currentPoint - rank_scope,
-        lte: currentPoint + rank_scope,
-      },
-    },
-    select: {
-      account_id: true,
-      nickname: true,
-      point: true,
-    },
-    orderBy: {
-      point: 'desc',
-    },
-  });
-  return accountList;
-};
 
 /* 
 랭킹 조회 
@@ -117,7 +108,7 @@ _비즈니스 로직
 1. 포인트 기준으로, 내림차순 정렬 리스트 생성 반환. 
 2. 닉네임, 점수, 승,무,패. 팀파워, 승률 보여주기.
 */
-play_router.get(`/rank`, authMiddleware, async (req, res, next) => {
+math_router.get(`/rank`, authMiddleware, async (req, res, next) => {
   try {
     const accountList = await prisma.accounts.findMany({
       select: {
@@ -129,7 +120,7 @@ play_router.get(`/rank`, authMiddleware, async (req, res, next) => {
         draw: true,
       },
       orderBy: {
-        point: 'Desc',
+        point: 'desc',
       },
     });
 
@@ -147,7 +138,7 @@ play_router.get(`/rank`, authMiddleware, async (req, res, next) => {
 });
 
 //계산 테스트
-play_router.get(`/search/:account_id/:list_in`, async (req, res, next) => {
+math_router.get(`/search/:account_id/:list_in`, async (req, res, next) => {
   const { account_id, list_in } = req.params;
   const result = await personalCal(account_id, +list_in);
 
@@ -155,7 +146,7 @@ play_router.get(`/search/:account_id/:list_in`, async (req, res, next) => {
 });
 
 //팀 계산 테스트
-play_router.get(`/search/:account_id/`, async (req, res, next) => {
+math_router.get(`/search/:account_id/`, async (req, res, next) => {
   const { account_id } = req.params;
   const result = await teamCal(account_id);
 
@@ -163,7 +154,7 @@ play_router.get(`/search/:account_id/`, async (req, res, next) => {
 });
 
 //임시 유저 계정 조회
-play_router.get(`/accounts`, async (req, res, next) => {
+math_router.get(`/accounts`, async (req, res, next) => {
   const accountList = await prisma.accounts.findMany({
     select: {
       account_id: true,
@@ -183,4 +174,4 @@ play_router.get(`/accounts`, async (req, res, next) => {
   return res.status(200).json({ data: accountList });
 });
 
-export default play_router;
+export default math_router;
