@@ -62,7 +62,7 @@ enforce_router.patch('/enforce', authMiddleware, async (req, res, next) => {
     if (exist_hold_player.enforce >= 7)
       return res.status(200).json('모든 강화가 완료된 선수 입니다.');
     else if (exist_hold_player.enforce >= exist_hold_player.count)
-      return res.status(402).json('강화 재화가 부족합니다.');
+      return res.status(402).json('강화 재료가 부족합니다.');
     exist_hold_player.count -= exist_hold_player.enforce;
 
     const rarity_row_enforce = await table_findFirst(exist_hold_player.player.rarity, {

@@ -32,7 +32,12 @@ const account_vaildation = joi.object({
     .min(1)
     .max(191)
     .required(),
-  nickname: joi.string().min(1).max(191).required(),
+  nickname: joi
+    .string()
+    .pattern(/^[가-힣a-zA-Z0-9]+$/)
+    .min(1)
+    .max(191)
+    .required(),
 });
 
 const id_password_validate = joi.object({
@@ -48,6 +53,10 @@ const id_password_validate = joi.object({
     .max(191)
     .pattern(/^[a-zA-Z0-9]+$/)
     .required(),
+});
+
+const account_id_validate = joi.object({
+  account_id: joi.number().integer().min(1).max(2147483647).required(),
 });
 
 const money_validate = joi.object({
@@ -106,6 +115,41 @@ router.post('/sign-in', async (req, res, next) => {
 
     res.header(`${process.env.TOKEN_KEY}`, `${process.env.TOKEN_TYPE} ${token}`);
     return res.status(200).json('로그인 성공');
+  } catch (error) {
+    next(error);
+  }
+});
+
+//본인 정보 조회
+router.get('/myinfo', authMiddleware, async (req, res, next) => {
+  const { nickname, win, draw, lose, point, cash, total_cash } = req.user;
+  return res.status(200).json({
+    nickname,
+    win,
+    draw,
+    lose,
+    point,
+    cash,
+    total_cash,
+  });
+});
+
+//다른 유저 정보 조회
+router.get('/users/:account_id', async (req, res, next) => {
+  try {
+    const { account_id } = await account_id_validate.validateAsync(req.params);
+    const result = await table_findFirst(process.env.ACCOUNTS, { account_id });
+
+    if (!result) return res.status(404).json('해당 유저가 존재하지 않습니다.');
+
+    delete result.account_id;
+    delete result.name;
+    delete result.id;
+    delete result.password;
+    delete result.cash;
+    delete result.total_cash;
+
+    return res.status(200).json(result);
   } catch (error) {
     next(error);
   }
