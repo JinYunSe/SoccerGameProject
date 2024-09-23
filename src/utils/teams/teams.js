@@ -1,6 +1,5 @@
 import prisma from '../prisma/index.js';
 import { Prisma } from '@prisma/client';
-import { personalCal } from '../match/match.js';
 import { table_findFirst, table_findMany, row_update } from '../tableFunction/table.js';
 
 export const realStat = async (list) => {
@@ -15,6 +14,33 @@ export const realStat = async (list) => {
     list[i].player.stats_stamina += add_status.add_stamina;
   }
   return list;
+};
+
+const statCal = async (list) => {
+  let summary;
+
+  let base =
+    list.player.stats_run * 0.1 +
+    list.player.stats_goal_decision * 0.25 +
+    list.player.stats_power * 0.15 +
+    list.player.stats_defense * 0.3 +
+    list.player.stats_stamina * 0.2;
+
+  switch (list.player.rarity) {
+    case 'SSR':
+      summary = base * 1.5;
+      break;
+    case 'SR':
+      summary = base * 1.2;
+      break;
+    case 'R':
+      summary = base;
+      break;
+    default:
+      break;
+  }
+
+  return summary;
 };
 
 export const teamsEdit = async (account_id, list_in, name) => {
@@ -77,19 +103,38 @@ export const teamsList = async (account_id) => {
   const team_member_list = await table_findMany(
     process.env.HOLD_PLAYERS,
     { account_id, NOT: { list_in: 0 } },
-    { list_in: true, name: true },
+    {
+      list_in: true,
+      name: true,
+      enforce: true,
+      player: {
+        select: {
+          rarity: true,
+          stats_run: true,
+          stats_goal_decision: true,
+          stats_power: true,
+          stats_defense: true,
+          stats_stamina: true,
+        },
+      },
+    },
     { orderBy: { list_in: 'asc' } },
   );
 
-  let message_data = [];
+  if (team_member_list.length === 0) return '편성된 선수가 없습니다';
+
+  // realStat 함수로 강화가 반영된 편성 리스트를 stat으로 저장
+  let stat = await realStat(team_member_list);
   let teamPower = 0;
+  let message_data = [];
+
   for (let i = 0; i < team_member_list.length; i++) {
-    let Power = Math.floor(await personalCal(account_id, team_member_list[i].list_in));
+    let Power = Math.floor(await statCal(stat[i]));
     teamPower += Power;
     message_data[i] = `${team_member_list[i].list_in}번 ${team_member_list[i].name}, ${Power}`;
   }
 
   message_data.push(`팀 전력 : ${teamPower}`);
-  // 반환
+
   return message_data;
 };
