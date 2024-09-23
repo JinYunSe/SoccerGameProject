@@ -29,7 +29,7 @@ model accounts{
   win Int @default(0)
   lose Int @default(0)
   draw Int @default(0)
-  point int @default(1000)
+  point Int @default(1000)
   cash Int @default(10000)
   total_cash Int @default(0)
 
