@@ -5,12 +5,12 @@ const randomNumber01 = () => {
 };
 
 const rarityOutputPrint = (value) => {
-  if (0 <= value && value < 0.33) return 'SSR';
-  // 4%
-  else if (0.33 <= value && value < 0.66) return 'SR';
-  // 43%
+  if (0 <= value && value < 0.2) return 'SSR';
+  // 20%
+  else if (0.2 <= value && value < 0.5) return 'SR';
+  // 30%
   else return 'R';
-  // 53%
+  // 50%
 
   //로 줄 예정 입니다.
   //현재는 테스트를 위해 위와 같이 적용
