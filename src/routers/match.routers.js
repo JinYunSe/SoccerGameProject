@@ -36,7 +36,7 @@ math_router.post(`/match/:opponent_id`, authMiddleware, async (req, res, next) =
     // 강화에 따른 수치 반영된 상대 팀
     const opponent_team = await realStat(await findTeam(opponent_id));
 
-    if (my_team.length === 0) return res.status(404).json('상대 팀이 존재하지 않습니다.');
+    if (opponent_team.length === 0) return res.status(404).json('상대 팀이 존재하지 않습니다.');
 
     let my_sum_weight = 0,
       opponent_team_weigth = 0;
