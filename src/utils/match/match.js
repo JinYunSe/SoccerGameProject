@@ -2,51 +2,6 @@ import { Prisma } from '@prisma/client';
 import prisma from '../prisma/index.js';
 import { row_update } from '../tableFunction/table.js';
 
-// //점수 비교 게임 플레이 함수
-// const matchMaking = async (my_account_id, opponent_accunt_id, my_team, opponent_team, count) => {
-//   const max_score = my_team + opponent_team;
-//   const randomValue = Math.random() * max_score;
-
-//   if (count === undefined)
-//     return await friendMatching(
-//       my_account_id,
-//       opponent_accunt_id,
-//       my_team,
-//       opponent_team,
-//       randomValue,
-//     );
-//   // count가 없는 경우의 로직_ 친선전
-//   else
-//     return await rankMatching(
-//       my_account_id,
-//       opponent_accunt_id,
-//       my_team,
-//       opponent_team,
-//       count,
-//       randomValue,
-//     );
-//   // count가 있는 경우의 로직_ 랭크전
-// };
-
-//친선 경기 매칭_ 점수를 비교해 결과 반환
-// const friendMatching = async (
-//   my_account_id,
-//   opponent_accunt_id,
-//   my_team,
-//   opponent_team,
-//   randomValue,
-// ) => {
-//   const max_score = my_team + opponent_team;
-
-//   if (randomValue < max_score * 0.1 || randomValue > max_score * 0.9) {
-//     return 'draw';
-//   } else if (randomValue < user) {
-//     return 'win';
-//   } else {
-//     return 'lose';
-//   }
-// };
-
 const friendMatching = async (my_team, opponent_team) => {
   const max_score = my_team + opponent_team;
   const score_diff = Math.abs(my_team - opponent_team);
