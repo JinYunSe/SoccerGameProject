@@ -15,7 +15,7 @@ import prisma from '../utils/prisma/index.js';
 
 const gambling_router = express.Router();
 
-gambling_router.get('/gambling', authMiddleware, async (req, res) => {
+gambling_router.get('/gambling', authMiddleware, async (req, res, next) => {
   let { account_id, cash } = req.user;
 
   if (cash < 1000) return res.status(402).json('케쉬가 부족합니다.');
