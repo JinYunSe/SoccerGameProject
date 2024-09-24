@@ -53,7 +53,7 @@ math_router.post(`/match/:opponent_id`, authMiddleware, async (req, res, next) =
 
     const result = await friendMatching(my_sum_weight, opponent_team_weigth);
 
-    const win_draw_lose = await resultMatch(account_id, opponent_id, result);
+    const win_draw_lose = result === 1 ? 'win' : result === -1 ? 'lose' : 'draw';
     return res.status(200).json(`${win_draw_lose}`);
   } catch (error) {
     next(error);
