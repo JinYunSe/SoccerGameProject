@@ -77,6 +77,12 @@ math_router.post(`/rank`, authMiddleware, async (req, res, next) => {
   try {
     //현재 계정의 점수를 찾는다.
     const { account_id, point, win, lose, draw } = req.user;
+
+    // 강화에 따른 수치 반영된 우리 팀
+    const my_team = await realStat(await findTeam(account_id));
+
+    if (my_team.length === 0) return res.status(404).json('팀 편성 먼저 해주세요');
+
     let opponent_team = null;
     let opponent = null;
     let count = 1;
@@ -110,11 +116,6 @@ math_router.post(`/rank`, authMiddleware, async (req, res, next) => {
       // 승리시 점수가 낮게 증가한다.
       // MMRChange에 그렇게 구현했습니다.
     } while (opponent_team.length === 0);
-
-    // 강화에 따른 수치 반영된 우리 팀
-    const my_team = await realStat(await findTeam(account_id));
-
-    if (my_team.length === 0) return res.status(404).json('팀 편성 먼저 해주세요');
 
     let my_sum_weight = 0,
       opponent_team_weigth = 0;
