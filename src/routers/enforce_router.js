@@ -6,7 +6,7 @@ import {
   row_update,
   table_findFirstInclude,
 } from '../utils/tableFunction/table.js';
-import { playerCountChange } from '../utils/soccer.player/enforce.js';
+import { playerCountChange } from '../utils/soccer.player/player.js';
 import { randomNumber01 } from '../utils/math/gambling.math.js';
 
 import authMiddleware from '../middleswares/auth.middleware.js';

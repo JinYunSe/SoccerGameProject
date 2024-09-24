@@ -1,8 +1,9 @@
 import express from 'express';
 import prisma from '../utils/prisma/index.js';
-import { teamsEdit, teamsList, realStat } from '../utils/teams/teams.js';
+import { teamsEdit, teamsList } from '../utils/teams/teams.js';
 import joi from 'joi';
 import checkBatchimEnding from '../utils/lastkorean/consonants.js';
+import { realStat } from '../utils/soccer.player/player.js';
 import authMiddleware from '../middleswares/auth.middleware.js';
 import { table_findFirst, table_findMany } from '../utils/tableFunction/table.js';
 const router = express.Router();
@@ -98,7 +99,6 @@ router.patch('/teams/edit', authMiddleware, async (req, res, next) => {
       }
     }
 
-    // 데이터 베이스와 비교 후 if 문에서 존재 여부 처리해주기
     for (let i = 0; i < inputData.length; i++) {
       const is_exist = await table_findFirst(process.env.HOLD_PLAYERS, {
         account_id,

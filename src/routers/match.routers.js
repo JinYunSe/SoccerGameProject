@@ -1,7 +1,9 @@
 import express from 'express';
 import { friendMatching, resultMatch, MMRChange } from '../utils/match/match.js';
 import { findOpponentUsers } from '../utils/users/user.js';
-import { realStat, weightStat, findTeam } from '../utils/teams/teams.js';
+import { findTeam } from '../utils/teams/teams.js';
+import { weightStat, realStat } from '../utils/soccer.player/player.js';
+import { table_findMany } from '../utils/tableFunction/table.js';
 import authMiddleware from '../middleswares/auth.middleware.js';
 import joi from 'joi';
 
@@ -25,6 +27,7 @@ math_router.post(`/match/:opponent_id`, authMiddleware, async (req, res, next) =
     const { account_id } = req.user;
     const { opponent_id } = await opponent_id_validate.validateAsync(req.params);
 
+    if (account_id === opponent_id) return res.status(404).json('상대방을 선택해주세요');
     // 강화에 따른 수치 반영된 우리 팀
     const my_team = await realStat(await findTeam(account_id));
 
@@ -83,7 +86,7 @@ math_router.post(`/rank`, authMiddleware, async (req, res, next) => {
       //점수 오차범위 100내의 리스트를 구하고, 오차범위내에 상대가 없다면 스코프를 넓힌다.
       let opponent_list = [];
       do {
-        // 게임 매칭을 잡을 상대방들 찾기
+        // 게임 매칭을 잡을 상대방들 찾기(본인 안 찾아집니다)
         opponent_list = await findOpponentUsers(account_id, point, count++);
       } while (opponent_list.length === 0);
 
@@ -111,6 +114,8 @@ math_router.post(`/rank`, authMiddleware, async (req, res, next) => {
 
     // 강화에 따른 수치 반영된 우리 팀
     const my_team = await realStat(await findTeam(account_id));
+
+    if (my_team.length === 0) return res.status(404).json('팀 편성 먼저 해주세요');
 
     let my_sum_weight = 0,
       opponent_team_weigth = 0;
@@ -156,6 +161,18 @@ _비즈니스 로직
 2. 닉네임, 점수, 승,무,패. 팀파워, 승률 보여주기.
 */
 
+math_router.get('/rank', async (req, res, next) => {
+  return res
+    .status(200)
+    .json(
+      await table_findMany(
+        process.env.ACCOUNTS,
+        {},
+        { nickname: true, point: true, win: true, draw: true, lose: true },
+        { orderBy: [{ point: 'desc' }, { win: 'desc' }, { draw: 'desc' }, { lose: 'asc' }] },
+      ),
+    );
+});
 // 새로 만들기
 
 export default math_router;

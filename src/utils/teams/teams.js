@@ -1,49 +1,7 @@
 import prisma from '../prisma/index.js';
 import { Prisma } from '@prisma/client';
-import { table_findFirst, table_findMany, row_update } from '../tableFunction/table.js';
-
-const realStat = async (list) => {
-  for (let i = 0; i < list.length; i++) {
-    const add_status = await table_findFirst(list[i].player.rarity, {
-      enforce: list[i].enforce,
-    });
-    list[i].player.stats_run += add_status.add_run;
-    list[i].player.stats_goal_decision += add_status.add_goal_decision;
-    list[i].player.stats_power += add_status.add_power;
-    list[i].player.stats_defense += add_status.add_defense;
-    list[i].player.stats_stamina += add_status.add_stamina;
-  }
-  console.log(list);
-  return list;
-};
-
-const statCal = async (list) => {
-  let summary;
-
-  let base =
-    list.player.stats_run * 0.1 +
-    list.player.stats_goal_decision * 0.25 +
-    list.player.stats_power * 0.15 +
-    list.player.stats_defense * 0.3 +
-    list.player.stats_stamina * 0.2;
-
-  switch (list.player.rarity) {
-    case 'SSR':
-      summary = base * 1.5;
-      break;
-    case 'SR':
-      summary = base * 1.2;
-      break;
-    case 'R':
-      summary = base;
-      break;
-    default:
-      break;
-  }
-
-  return summary;
-};
-
+import { table_findMany, row_update } from '../tableFunction/table.js';
+import { realStat, weightStat } from '../soccer.player/player.js';
 const teamsEdit = async (account_id, list_in, name) => {
   // name1로 입력 받은 선수명 / 입력받은 선수가 보유 중인 선수인가?
   const is_exist_name = await prisma.hold_players.findFirst({
@@ -136,7 +94,7 @@ const teamsList = async (account_id) => {
   let message_data = [];
 
   for (let i = 0; i < team_member_list.length; i++) {
-    let Power = Math.floor(await statCal(stat[i]));
+    let Power = Math.floor(await weightStat(stat[i]));
     teamPower += Power;
     message_data[i] = `${team_member_list[i].list_in}번 ${team_member_list[i].name}, ${Power}`;
   }
@@ -146,28 +104,4 @@ const teamsList = async (account_id) => {
   return message_data;
 };
 
-//편성 선수 개인 점수 계산 함수
-const weightStat = async (game_player) => {
-  let summary =
-    game_player.player.stats_run * 0.1 +
-    game_player.player.stats_goal_decision * 0.25 +
-    game_player.player.stats_power * 0.15 +
-    game_player.player.stats_defense * 0.3 +
-    game_player.player.stats_stamina * 0.2;
-
-  switch (game_player.player.rarity) {
-    case 'SSR':
-      summary *= 1.5;
-      break;
-    case 'SR':
-      summary *= 1.2;
-      break;
-    case 'R':
-      summary *= 0.9;
-      break;
-  }
-
-  return Math.floor(summary);
-};
-
-export { findTeam, teamsList, teamsEdit, realStat, weightStat };
+export { findTeam, teamsList, teamsEdit };
