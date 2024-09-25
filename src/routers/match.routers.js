@@ -38,7 +38,7 @@ math_router.post(`/match/:opponent_id`, authMiddleware, async (req, res, next) =
 
     if (opponent_team.length === 0) return res.status(404).json('상대 팀이 존재하지 않습니다.');
 
-    let my_sum_weight = 0,
+    let my_team_weight = 0,
       opponent_team_weigth = 0;
 
     // 우리팀 선수가 1 ~ 3개 일수 있고,
@@ -51,7 +51,7 @@ math_router.post(`/match/:opponent_id`, authMiddleware, async (req, res, next) =
       opponent_team_weigth += await weightStat(opponent_team[i]);
     }
 
-    const result = await friendMatching(my_sum_weight, opponent_team_weigth);
+    const result = await friendMatching(my_team_weight, opponent_team_weigth);
 
     const win_draw_lose = result === 1 ? 'win' : result === -1 ? 'lose' : 'draw';
     return res.status(200).json(`${win_draw_lose}`);
