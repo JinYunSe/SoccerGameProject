@@ -44,7 +44,7 @@ math_router.post(`/match/:opponent_id`, authMiddleware, async (req, res, next) =
     // 우리팀 선수가 1 ~ 3개 일수 있고,
     // 상대팀 선수가 1 ~ 3개 일수 있어서 반복문 따로 사용
     for (let i = 0; i < my_team.length; i++) {
-      my_sum_weight += await weightStat(my_team[i]);
+      my_team_weight += await weightStat(my_team[i]);
     }
 
     for (let i = 0; i < opponent_team.length; i++) {
@@ -117,27 +117,27 @@ math_router.post(`/rank`, authMiddleware, async (req, res, next) => {
       // MMRChange에 그렇게 구현했습니다.
     } while (opponent_team.length === 0);
 
-    let my_sum_weight = 0,
+    let my_team_weight = 0,
       opponent_team_weigth = 0;
 
     // 우리팀 선수가 1 ~ 3개 일수 있고,
     // 상대팀 선수가 1 ~ 3개 일수 있어서 반복문 따로 사용
     for (let i = 0; i < my_team.length; i++) {
-      my_sum_weight += await weightStat(my_team[i]);
+      my_team_weight += await weightStat(my_team[i]);
     }
 
     for (let i = 0; i < opponent_team.length; i++) {
       opponent_team_weigth += await weightStat(opponent_team[i]);
     }
 
-    const result = await friendMatching(my_sum_weight, opponent_team_weigth);
+    const result = await friendMatching(my_team_weight, opponent_team_weigth);
 
     const win_draw_lose = await resultMatch(account_id, opponent.account_id, result, count);
 
     const add_min = await MMRChange(
       account_id,
       opponent.account_id,
-      my_sum_weight,
+      my_team_weight,
       opponent_team_weigth,
       result,
       count,
