@@ -28,11 +28,11 @@ const friendMatching = async (my_team, opponent_team) => {
   );
 
   if (random_number < my_team_win_probability) return 1;
-  //승부를 건 본인 기준 승리
+  //본인 기준 승리
   else if (random_number < my_team_win_probability + draw_probability) return 0;
   // 무승부
   else return -1;
-  //승부를 건 본인 기준 패배
+  //본인 기준 패배
 };
 
 const resultMatch = async (account_id, opponent_id, result) => {
