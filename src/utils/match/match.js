@@ -76,7 +76,7 @@ const resultMatch = async (account_id, opponent_id, result) => {
 const MMRChange = async (
   account_id,
   opponent_account_id,
-  my_sum_weight,
+  my_team_weight,
   opponent_team_weigth,
   result,
   count,
@@ -85,7 +85,7 @@ const MMRChange = async (
     async (tx) => {
       if (result === 1) {
         const increment_decrement_amplification =
-          my_sum_weight > opponent_team_weigth ? 100 / count : 100 * count;
+          my_team_weight > opponent_team_weigth ? 100 / count : 100 * count;
 
         // 내가 이겼을 때,
         // 내가 강하면 100 / count로 증가치를 줄여주고,
@@ -106,7 +106,7 @@ const MMRChange = async (
         return increment_decrement_amplification;
       } else if (result === -1) {
         const increment_decrement_amplification =
-          my_sum_weight < opponent_team_weigth ? 100 / count : 100 * count;
+          my_team_weight < opponent_team_weigth ? 100 / count : 100 * count;
 
         // 내가 졌을 때,
         // 상대방이 강하면 100 / count로 감소치를 줄여주고,
